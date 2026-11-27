@@ -7,6 +7,41 @@
 
 #include "HelpersEnvironmentVariablesSystem.c"
 
+static PyObject *Nuitka_String_FromEnvironmentVariable(environment_char_t const *value) {
+#if defined(_WIN32) && PYTHON_VERSION < 0x300
+    // CPython 2 exposes environment variables as 'str' in the ANSI code page,
+    // and e.g. 'subprocess.Popen' rejects unicode values for the environment.
+    int buffer_size = WideCharToMultiByte(CP_ACP, 0, value, -1, NULL, 0, NULL, NULL);
+
+    if (unlikely(buffer_size <= 0)) {
+        abort();
+    }
+
+    char *buffer = (char *)malloc((size_t)buffer_size);
+
+    if (unlikely(buffer == NULL)) {
+        abort();
+    }
+
+    int converted_size = WideCharToMultiByte(CP_ACP, 0, value, -1, buffer, buffer_size, NULL, NULL);
+
+    if (unlikely(converted_size != buffer_size)) {
+        free(buffer);
+        abort();
+    }
+
+    PyObject *result = Nuitka_String_FromStringAndSize(buffer, (Py_ssize_t)(converted_size - 1));
+
+    free(buffer);
+
+    return result;
+#elif defined(_WIN32)
+    return NuitkaUnicode_FromWideChar(value, -1);
+#else
+    return Nuitka_String_FromString(value);
+#endif
+}
+
 void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name, environment_char_t const *old_value) {
     PyObject *os_module = IMPORT_HARD_OS();
     CHECK_OBJECT(os_module);
@@ -18,14 +53,12 @@ void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name, e
     CHECK_OBJECT(variable_name_str);
 
     if (old_value) {
-        setEnvironmentVariable(variable_name, old_value);
+        PyObject *env_value = Nuitka_String_FromEnvironmentVariable(old_value);
 
-#ifdef _WIN32
-        PyObject *env_value = NuitkaUnicode_FromWideChar(old_value, -1);
-#else
-        PyObject *env_value = Nuitka_String_FromString(old_value);
-#endif
-        CHECK_OBJECT(env_value);
+        if (unlikely(env_value == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
 
         bool res = SET_SUBSCRIPT(tstate, os_environ, variable_name_str, env_value);
 
@@ -35,14 +68,18 @@ void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name, e
         }
 
         Py_DECREF(env_value);
-    } else {
-        unsetEnvironmentVariable(variable_name);
 
+        // Python 2's 'os.environ' assignment uses 'nt.putenv', which writes the
+        // ANSI environment, so restoring the wide value must come afterwards.
+        setEnvironmentVariable(variable_name, old_value);
+    } else {
         bool res = DEL_SUBSCRIPT(os_environ, variable_name_str);
 
         if (unlikely(res == false)) {
             CLEAR_ERROR_OCCURRED(tstate);
         }
+
+        unsetEnvironmentVariable(variable_name);
     }
 
     Py_DECREF(variable_name_str);
