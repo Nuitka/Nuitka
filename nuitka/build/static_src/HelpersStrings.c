@@ -1225,6 +1225,263 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
 #endif
 }
 
+PyObject *Nuitka_PyUnicode_FromObject(PyObject *obj) {
+    CHECK_OBJECT(obj);
+
+    if (PyUnicode_CheckExact(obj)) {
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3c0
+        if (unlikely(PyUnicode_READY(obj) == -1)) {
+            return NULL;
+        }
+#endif
+        return Py_NewRef(obj);
+    }
+
+#if PYTHON_VERSION >= 0x300
+    if (PyUnicode_Check(obj)) {
+#if PYTHON_VERSION < 0x3c0
+        if (unlikely(PyUnicode_READY(obj) == -1)) {
+            return NULL;
+        }
+#endif
+
+        Py_ssize_t length = PyUnicode_GET_LENGTH(obj);
+        if (length == 0) {
+            return Py_NewRef_IMMORTAL(const_str_empty);
+        }
+
+        PyObject *result = Nuitka_Unicode_New(length, PyUnicode_MAX_CHAR_VALUE(obj));
+        CHECK_OBJECT(result);
+
+        _NuitkaUnicode_FastCopyCharacters(result, 0, obj, 0, length);
+        return result;
+    }
+
+    SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("Can't convert '%s' object to str implicitly", obj);
+    return NULL;
+#else
+    if (PyUnicode_Check(obj)) {
+        Py_ssize_t length = PyUnicode_GET_SIZE(obj);
+        PyObject *result = Nuitka_Unicode_New(length, 0);
+        CHECK_OBJECT(result);
+
+        if (length > 0) {
+            memcpy(PyUnicode_AS_UNICODE(result), PyUnicode_AS_UNICODE(obj), (size_t)length * sizeof(Py_UNICODE));
+        }
+
+        return result;
+    }
+
+    return PyUnicode_FromEncodedObject(obj, NULL, "strict");
+#endif
+}
+
+Py_ssize_t Nuitka_Unicode_FindChar(PyObject *str, Py_UCS4 ch, Py_ssize_t start, Py_ssize_t end, int direction) {
+    CHECK_OBJECT(str);
+    assert(PyUnicode_Check(str));
+
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3c0
+    if (unlikely(PyUnicode_READY(str) == -1)) {
+        return -2;
+    }
+#endif
+
+    Py_ssize_t len = PyUnicode_GET_LENGTH(str);
+    if (end > len) {
+        end = len;
+    } else if (end < 0) {
+        end += len;
+        if (end < 0) {
+            end = 0;
+        }
+    }
+    if (start < 0) {
+        start += len;
+        if (start < 0) {
+            start = 0;
+        }
+    }
+    if (start >= end) {
+        return -1;
+    }
+
+#if PYTHON_VERSION >= 0x300
+    if (ch > PyUnicode_MAX_CHAR_VALUE(str)) {
+        return -1;
+    }
+
+    int kind = PyUnicode_KIND(str);
+    void const *data = PyUnicode_DATA(str);
+
+    if (kind == PyUnicode_1BYTE_KIND) {
+        Py_UCS1 const *d = (Py_UCS1 const *)data;
+        if (direction > 0) {
+            void const *pos = memchr(d + start, (int)ch, (size_t)(end - start));
+            return pos != NULL ? (Py_ssize_t)((Py_UCS1 const *)pos - d) : -1;
+        } else {
+            for (Py_ssize_t i = end - 1; i >= start; i--) {
+                if (d[i] == (Py_UCS1)ch) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+    } else if (kind == PyUnicode_2BYTE_KIND) {
+        Py_UCS2 const *d = (Py_UCS2 const *)data;
+        if (direction > 0) {
+            for (Py_ssize_t i = start; i < end; i++) {
+                if (d[i] == (Py_UCS2)ch) {
+                    return i;
+                }
+            }
+        } else {
+            for (Py_ssize_t i = end - 1; i >= start; i--) {
+                if (d[i] == (Py_UCS2)ch) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    } else {
+        assert(kind == PyUnicode_4BYTE_KIND);
+        Py_UCS4 const *d = (Py_UCS4 const *)data;
+        if (direction > 0) {
+            for (Py_ssize_t i = start; i < end; i++) {
+                if (d[i] == ch) {
+                    return i;
+                }
+            }
+        } else {
+            for (Py_ssize_t i = end - 1; i >= start; i--) {
+                if (d[i] == ch) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+#else
+#if Py_UNICODE_SIZE == 2
+    if (ch > 0xffff) {
+        return -1;
+    }
+#endif
+
+    Py_UNICODE const *d = PyUnicode_AS_UNICODE(str);
+    if (direction > 0) {
+        for (Py_ssize_t i = start; i < end; i++) {
+            if ((Py_UCS4)d[i] == ch) {
+                return i;
+            }
+        }
+    } else {
+        for (Py_ssize_t i = end - 1; i >= start; i--) {
+            if ((Py_UCS4)d[i] == ch) {
+                return i;
+            }
+        }
+    }
+    return -1;
+#endif
+}
+
+PyObject *Nuitka_Unicode_Substring(PyObject *str, Py_ssize_t start, Py_ssize_t end) {
+    CHECK_OBJECT(str);
+    assert(PyUnicode_Check(str));
+
+    if (unlikely(start < 0 || end < 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyThreadState_GET(), PyExc_IndexError, "string index out of range");
+        return NULL;
+    }
+
+#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x3c0
+    if (unlikely(PyUnicode_READY(str) == -1)) {
+        return NULL;
+    }
+#endif
+
+    Py_ssize_t str_len = PyUnicode_GET_LENGTH(str);
+    if (end > str_len) {
+        end = str_len;
+    }
+
+    if (start == 0 && end == str_len) {
+        return Nuitka_PyUnicode_FromObject(str);
+    }
+
+    if (start >= end) {
+        return Py_NewRef_IMMORTAL(const_str_empty);
+    }
+
+    Py_ssize_t slice_len = end - start;
+    Py_UCS4 max_char = 0x7f;
+
+    if (!PyUnicode_IS_ASCII(str)) {
+        int kind = PyUnicode_KIND(str);
+
+        if (kind == PyUnicode_1BYTE_KIND) {
+            Py_UCS1 const *d = PyUnicode_1BYTE_DATA(str) + start;
+            for (Py_ssize_t i = 0; i < slice_len; i++) {
+                if (d[i] >= 0x80) {
+                    max_char = 0xff;
+                    break;
+                }
+            }
+        } else if (kind == PyUnicode_2BYTE_KIND) {
+            Py_UCS2 const *d = PyUnicode_2BYTE_DATA(str) + start;
+            for (Py_ssize_t i = 0; i < slice_len; i++) {
+                if (d[i] > max_char) {
+                    max_char = d[i];
+                    if (max_char >= 0x100) {
+                        max_char = 0xffff;
+                        break;
+                    }
+                }
+            }
+        } else {
+            assert(kind == PyUnicode_4BYTE_KIND);
+            Py_UCS4 const *d = PyUnicode_4BYTE_DATA(str) + start;
+            for (Py_ssize_t i = 0; i < slice_len; i++) {
+                if (d[i] > max_char) {
+                    max_char = d[i];
+                    if (max_char >= 0x10000) {
+                        max_char = 0x10ffff;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    PyObject *result = Nuitka_Unicode_New(slice_len, max_char);
+    CHECK_OBJECT(result);
+
+    _NuitkaUnicode_FastCopyCharacters(result, 0, str, start, slice_len);
+    return result;
+#else
+    Py_ssize_t str_len = PyUnicode_GET_SIZE(str);
+    if (end > str_len) {
+        end = str_len;
+    }
+
+    if (start == 0 && end == str_len) {
+        return Nuitka_PyUnicode_FromObject(str);
+    }
+
+    if (start >= end) {
+        return Nuitka_Unicode_New(0, 0);
+    }
+
+    Py_ssize_t slice_len = end - start;
+    PyObject *result = Nuitka_Unicode_New(slice_len, 0);
+    CHECK_OBJECT(result);
+
+    memcpy(PyUnicode_AS_UNICODE(result), PyUnicode_AS_UNICODE(str) + start, (size_t)slice_len * sizeof(Py_UNICODE));
+    return result;
+#endif
+}
+
 int Nuitka_Unicode_CompareWithASCIIString(PyObject *unicode, char const *ascii) {
     // Replacement for "PyUnicode_CompareWithASCIIString" that avoids internal encoding.
     if (unlikely(!PyUnicode_Check(unicode))) {

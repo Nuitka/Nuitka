@@ -1037,7 +1037,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
 
 // Normalize to unicode on Python 2 Windows so callIntoInstalledExtensionModule can expect PyUnicode_CheckExact.
 #if PYTHON_VERSION < 0x300 && defined(_WIN32)
-                PyObject *tmp = PyUnicode_FromObject(fullpath);
+                PyObject *tmp = Nuitka_PyUnicode_FromObject(fullpath);
                 Py_DECREF(fullpath);
                 fullpath = tmp;
 #endif

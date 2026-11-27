@@ -41,12 +41,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *STRIP_DIRNAME(PyObject *path) {
     return PyString_FromStringAndSize(path_cstr, last_sep - path_cstr);
 #else
 #ifdef _WIN32
-    Py_ssize_t dot_index = PyUnicode_Find(path, const_str_backslash, 0, PyUnicode_GetLength(path), -1);
+    Py_ssize_t dot_index = Nuitka_Unicode_FindChar(path, '\\', 0, PY_SSIZE_T_MAX, -1);
 #else
-    Py_ssize_t dot_index = PyUnicode_Find(path, const_str_slash, 0, PyUnicode_GetLength(path), -1);
+    Py_ssize_t dot_index = Nuitka_Unicode_FindChar(path, '/', 0, PY_SSIZE_T_MAX, -1);
 #endif
-    if (likely(dot_index != -1)) {
-        return PyUnicode_Substring(path, 0, dot_index);
+    if (likely(dot_index >= 0)) {
+        return Nuitka_Unicode_Substring(path, 0, dot_index);
     } else {
         Py_INCREF(path);
         return path;

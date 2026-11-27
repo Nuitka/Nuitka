@@ -340,7 +340,7 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
         }
 
         if (has_path == 0) {
-            Py_ssize_t dot = PyUnicode_FindChar(package, '.', 0, PyUnicode_GET_LENGTH(package), -1);
+            Py_ssize_t dot = Nuitka_Unicode_FindChar(package, '.', 0, PY_SSIZE_T_MAX, -1);
 
             if (unlikely(dot == -2)) {
                 return NULL;
@@ -351,16 +351,21 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
                 return NULL;
             }
 
-            PyObject *substr = PyUnicode_Substring(package, 0, dot);
-            if (unlikely(substr == NULL)) {
-                return NULL;
-            }
+            PyObject *substr = Nuitka_Unicode_Substring(package, 0, dot);
+            CHECK_OBJECT(substr);
 
             package = substr;
         } else {
             Py_INCREF(package);
         }
     }
+
+#if PYTHON_VERSION < 0x3c0
+    if (unlikely(PyUnicode_READY(package) == -1)) {
+        Py_DECREF(package);
+        return NULL;
+    }
+#endif
 
     Py_ssize_t last_dot = PyUnicode_GET_LENGTH(package);
 
@@ -372,7 +377,7 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
     }
 
     for (int level_up = 1; level_up < level; level_up += 1) {
-        last_dot = PyUnicode_FindChar(package, '.', 0, last_dot, -1);
+        last_dot = Nuitka_Unicode_FindChar(package, '.', 0, last_dot, -1);
         if (last_dot == -2) {
             Py_DECREF(package);
             return NULL;
@@ -384,11 +389,19 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
         }
     }
 
-    PyObject *base = PyUnicode_Substring(package, 0, last_dot);
+    PyObject *base = Nuitka_Unicode_Substring(package, 0, last_dot);
+    CHECK_OBJECT(base);
 
     Py_DECREF(package);
 
-    if (unlikely(base == NULL || PyUnicode_GET_LENGTH(name) == 0)) {
+#if PYTHON_VERSION < 0x3c0
+    if (unlikely(PyUnicode_READY(name) == -1)) {
+        Py_DECREF(base);
+        return NULL;
+    }
+#endif
+
+    if (unlikely(PyUnicode_GET_LENGTH(name) == 0)) {
         return base;
     }
 

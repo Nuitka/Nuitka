@@ -19,6 +19,9 @@ extern PyObject *UNICODE_RPARTITION(PyThreadState *tstate, PyObject *str, PyObje
 
 extern PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size);
 extern PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char);
+extern PyObject *Nuitka_PyUnicode_FromObject(PyObject *obj);
+extern Py_ssize_t Nuitka_Unicode_FindChar(PyObject *str, Py_UCS4 ch, Py_ssize_t start, Py_ssize_t end, int direction);
+extern PyObject *Nuitka_Unicode_Substring(PyObject *str, Py_ssize_t start, Py_ssize_t end);
 
 /* Our own version of "PyUnicode_CompareWithASCIIString". It compares
    a unicode object with an ASCII C string, returning 0 for equality, and
