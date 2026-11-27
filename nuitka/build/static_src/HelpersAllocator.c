@@ -170,7 +170,7 @@ static void Nuitka_invoke_gc_callback(PyThreadState *tstate, const char *phase, 
             Py_BuildValue("{sisnsn}", "generation", generation, "collected", collected, "uncollectable", uncollectable);
 
         if (info == NULL) {
-            Nuitka_WriteUnraisable(NULL);
+            Nuitka_WriteUnraisable(tstate, NULL);
             return;
         }
     }
@@ -182,7 +182,7 @@ static void Nuitka_invoke_gc_callback(PyThreadState *tstate, const char *phase, 
         r = PyObject_CallFunction(cb, "sO", phase, info);
 
         if (r == NULL) {
-            Nuitka_WriteUnraisable(cb);
+            Nuitka_WriteUnraisable(tstate, cb);
         } else {
             Py_DECREF(r);
         }
@@ -527,7 +527,7 @@ static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable,
 
         temp = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, callback, (PyObject *)wr);
         if (temp == NULL)
-            Nuitka_WriteUnraisable(callback);
+            Nuitka_WriteUnraisable(tstate, callback);
         else
             Py_DECREF(temp);
 
@@ -583,7 +583,7 @@ static void Nuitka_delete_garbage(PyThreadState *tstate, GCState *gcstate, PyGC_
                 Py_INCREF(obj);
                 (void)clear(obj);
                 if (HAS_ERROR_OCCURRED(tstate)) {
-                    Nuitka_WriteUnraisableMsg("in tp_clear of", (PyObject *)Py_TYPE(obj));
+                    Nuitka_WriteUnraisableMsg(tstate, "in tp_clear of", (PyObject *)Py_TYPE(obj));
                 }
                 Py_DECREF(obj);
             }
@@ -688,7 +688,7 @@ static Py_ssize_t Nuitka_gc_collect_main(PyThreadState *tstate, int generation, 
     Nuitka_handle_legacy_finalizers(tstate, gcstate, &finalizers, old);
 
     if (HAS_ERROR_OCCURRED(tstate)) {
-        Nuitka_WriteUnraisableMsg("in garbage collection", NULL);
+        Nuitka_WriteUnraisableMsg(tstate, "in garbage collection", NULL);
     }
 
     if (n_collected) {

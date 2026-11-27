@@ -1165,7 +1165,7 @@ static void Nuitka_Coroutine_tp_finalize(PyObject *self) {
     PyObject *close_result = _Nuitka_Coroutine_close(tstate, coroutine);
 
     if (unlikely(close_result == NULL)) {
-        Nuitka_WriteUnraisable((PyObject *)coroutine);
+        Nuitka_WriteUnraisable(tstate, (PyObject *)coroutine);
     } else {
         Py_DECREF(close_result);
     }

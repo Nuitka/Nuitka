@@ -1288,7 +1288,7 @@ static void Nuitka_DictSendEvent(PyThreadState *tstate, int watcher_bits, PyDict
                     context = Py_NewRef(Py_None);
                 }
 
-                Nuitka_WriteUnraisable(context);
+                Nuitka_WriteUnraisable(tstate, context);
                 Py_DECREF(context);
             }
         }
