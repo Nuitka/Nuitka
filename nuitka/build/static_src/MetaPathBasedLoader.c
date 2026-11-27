@@ -2036,7 +2036,7 @@ void Nuitka_LoadTriggeredModule(PyThreadState *tstate, struct Nuitka_MetaPathBas
             abort();
         } else {
             PyObject *trigger_display_name_str = Nuitka_String_FromString(trigger_display_name);
-            Nuitka_WriteUnraisable(trigger_display_name_str);
+            Nuitka_WriteUnraisable(tstate, trigger_display_name_str);
             Py_DECREF(trigger_display_name_str);
         }
     } else {

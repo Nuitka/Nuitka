@@ -22,11 +22,16 @@ extern void DICT_SET_ITEM_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyOb
 // Write unraisable exceptions, unless disabled at compile time. CPython
 // internal writes still need the "sys.unraisablehook" workaround.
 #if PYTHON_NO_UNRAISABLE
-#define Nuitka_WriteUnraisable(object)
-#define Nuitka_WriteUnraisableMsg(message, object)
+#define Nuitka_WriteUnraisable(tstate, object) CLEAR_ERROR_OCCURRED(tstate)
+#define Nuitka_WriteUnraisableMsg(tstate, message, object) CLEAR_ERROR_OCCURRED(tstate)
 #else
-#define Nuitka_WriteUnraisable(object) PyErr_WriteUnraisable(object)
-#define Nuitka_WriteUnraisableMsg(message, object) _PyErr_WriteUnraisableMsg(message, object)
+#define Nuitka_WriteUnraisable(tstate, object) PyErr_WriteUnraisable(object)
+
+#if PYTHON_VERSION >= 0x3d0
+#define Nuitka_WriteUnraisableMsg(tstate, message, object) PyErr_FormatUnraisable("Exception ignored %s", message)
+#else
+#define Nuitka_WriteUnraisableMsg(tstate, message, object) _PyErr_WriteUnraisableMsg(message, object)
+#endif
 #endif
 
 NUITKA_MAY_BE_UNUSED static inline bool HAS_ERROR_OCCURRED(PyThreadState const *tstate) {
@@ -1186,14 +1191,14 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
         int res = Nuitka_Object_IsSubclass(tstate, exception_value, PyExc_GeneratorExit);
 
         if (unlikely(res == -1)) {
-            Nuitka_WriteUnraisable(exception_value);
+            Nuitka_WriteUnraisable(tstate, exception_value);
         }
 
         if (res != 1) {
             res = Nuitka_Object_IsSubclass(tstate, exception_value, PyExc_StopIteration);
 
             if (unlikely(res == -1)) {
-                Nuitka_WriteUnraisable(exception_value);
+                Nuitka_WriteUnraisable(tstate, exception_value);
             }
         }
 
@@ -1241,7 +1246,7 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE(PyThreadState *tsta
         int res = Nuitka_Object_IsSubclass(tstate, exception_value, exception_checked);
 
         if (unlikely(res == -1)) {
-            Nuitka_WriteUnraisable(exception_value);
+            Nuitka_WriteUnraisable(tstate, exception_value);
         }
 
         RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
@@ -1285,7 +1290,7 @@ NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyThreadState *tsta
         Py_SetRecursionLimit(recursion_limit);
 
         if (unlikely(res == -1)) {
-            Nuitka_WriteUnraisable(exception_value);
+            Nuitka_WriteUnraisable(tstate, exception_value);
             res = 0;
         }
 

@@ -2822,7 +2822,7 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf) {
 
         if (meth == NULL) {
             if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
-                Nuitka_WriteUnraisable(yf);
+                Nuitka_WriteUnraisable(tstate, yf);
                 CLEAR_ERROR_OCCURRED(tstate);
             }
         } else {

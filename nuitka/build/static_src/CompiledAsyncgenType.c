@@ -1026,7 +1026,7 @@ static void Nuitka_Asyncgen_tp_finalize(PyObject *self) {
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, finalizer, (PyObject *)asyncgen);
 
         if (unlikely(res == NULL)) {
-            Nuitka_WriteUnraisable((PyObject *)asyncgen);
+            Nuitka_WriteUnraisable(tstate, (PyObject *)asyncgen);
         } else {
             Py_DECREF(res);
         }
@@ -1040,7 +1040,7 @@ static void Nuitka_Asyncgen_tp_finalize(PyObject *self) {
     bool close_result = _Nuitka_Asyncgen_close(tstate, asyncgen);
 
     if (unlikely(close_result == false)) {
-        Nuitka_WriteUnraisable((PyObject *)asyncgen);
+        Nuitka_WriteUnraisable(tstate, (PyObject *)asyncgen);
     }
 
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);

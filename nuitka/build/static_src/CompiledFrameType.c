@@ -764,7 +764,7 @@ static PyObject *Nuitka_Frame_clear(PyObject *self, PyObject *unused) {
         }
 
         if (unlikely(close_exception)) {
-            Nuitka_WriteUnraisable(f_gen);
+            Nuitka_WriteUnraisable(tstate, f_gen);
         }
 
         Py_DECREF(frame);

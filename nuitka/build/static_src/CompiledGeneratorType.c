@@ -282,7 +282,7 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
             PyObject *error = GET_ERROR_OCCURRED(tstate);
 
             if (error != NULL && !EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_AttributeError)) {
-                Nuitka_WriteUnraisable((PyObject *)value);
+                Nuitka_WriteUnraisable(tstate, (PyObject *)value);
             }
         }
 
@@ -1228,7 +1228,7 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 #if _DEBUG_GENERATOR
             PRINT_STRING("Nuitka_gen_close_iter: Strange error while looking up close method.\n");
 #endif
-            Nuitka_WriteUnraisable(yield_from);
+            Nuitka_WriteUnraisable(tstate, yield_from);
             CLEAR_ERROR_OCCURRED(tstate);
         }
 
@@ -1577,7 +1577,7 @@ static void Nuitka_Generator_tp_finalizer(PyObject *self) {
     PyObject *close_result = _Nuitka_Generator_close(tstate, generator);
 
     if (unlikely(close_result == NULL)) {
-        Nuitka_WriteUnraisable((PyObject *)generator);
+        Nuitka_WriteUnraisable(tstate, (PyObject *)generator);
     } else {
         Py_DECREF(close_result);
     }
@@ -1631,7 +1631,7 @@ static void Nuitka_Generator_tp_dealloc(PyObject *self) {
         CHECK_OBJECT(generator);
 
         if (unlikely(close_result == NULL)) {
-            Nuitka_WriteUnraisable((PyObject *)generator);
+            Nuitka_WriteUnraisable(tstate, (PyObject *)generator);
         } else {
             Py_DECREF(close_result);
         }
