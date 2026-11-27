@@ -296,8 +296,7 @@ extern void DICT_SET_ITEM1_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyO
 // Set a key in a dictionary using a caller supplied hash and equality
 // function. A NULL equality function selects normal key equality. This is for
 // caches with their own key rules and must not be used for ordinary Python
-// dictionaries. Watched dictionaries and free-threaded builds currently
-// delegate to CPython and therefore use normal equality.
+// dictionaries.
 extern bool DICT_SET_ITEM_WITH_HASH_AND_EQ(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
                                            richcmpfunc equal_func, PyObject *value);
 
@@ -383,15 +382,15 @@ static inline PyObject *DICT_GET_ITEM0_WITH_HASH(PyThreadState *tstate, PyObject
 extern int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 #if PYTHON_VERSION >= 0x3c0
-// Check if a dictionary has CPython watchers attached. Such dictionaries must
-// go through CPython for mutations to send watcher events and preserve the
-// version tag bits used by the watcher machinery.
+// Check if a dictionary has CPython watchers attached. The watcher bits are
+// stored in the version tag before Python 3.14, and in the watcher tag after.
 static inline bool NUITKA_DICT_IS_WATCHED(PyDictObject *dict) {
 #if PYTHON_VERSION < 0x3d0
     return (dict->ma_version_tag & DICT_VERSION_MASK) != 0;
 #elif PYTHON_VERSION < 0x3e0
     return (dict->ma_version_tag & DICT_WATCHER_MASK) != 0;
-#elif PYTHON_VERSION < 0x3f0
+#elif PYTHON_VERSION < 0x3e5
+    // CPython 3.14.5 added FT_ATOMIC_LOAD_UINT64_ACQUIRE.
     return (dict->_ma_watcher_tag & DICT_WATCHER_MASK) != 0;
 #else
     return (FT_ATOMIC_LOAD_UINT64_ACQUIRE(dict->_ma_watcher_tag) & DICT_WATCHER_MASK) != 0;

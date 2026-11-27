@@ -9,11 +9,17 @@ insertion, deletion, and merging on 3.4 through 3.12 through compiled subscript
 operations, and split-target operations on all versions through the C helpers.
 The C helper section also checks known-hash insertion and lookup, and caller
 supplied equality rules. It verifies that forced-hash general keys survive
-repeated resizes, which covers the constants-cache pattern. The harness has
-separate ctypes layouts for the free-threaded `PyObject`, `PyDictObject`, and
-`PyDictKeysObject` structures, so the same structural checks run on 3.13t
-through 3.15t as well. The C concurrency harness additionally covers contention,
-including known-hash set, lookup, and deletion on free-threaded builds.
+repeated resizes, which covers the constants-cache pattern. With the user plugin
+on Python 3.12 and later, it also registers dictionary watchers and compares the
+event order and pre-mutation state seen by callbacks for CPython and Nuitka
+helper mutations. It covers `CLONED` events for empty target dictionaries,
+unwatching from a callback, and exceptions raised by callbacks. The clone fast
+path is not used on free-threaded builds, where updates emit per-key events
+instead. The harness has separate ctypes layouts for the free-threaded
+`PyObject`, `PyDictObject`, and `PyDictKeysObject` structures, so the same
+structural checks run on 3.13t through 3.15t as well. The C concurrency harness
+additionally covers contention, including known-hash set, lookup, and deletion
+on free-threaded builds.
 Run it through Nuitka with the native interpreter, e.g. `python3.13 bin/nuitka
 --run tests/codegen-analysis/DictionaryStructureTest.py`. Add
 `--user-plugin=tests/codegen-analysis/DictStructurePlugin.py` to inject the C

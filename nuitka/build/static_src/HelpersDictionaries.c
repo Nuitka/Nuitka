@@ -1269,27 +1269,39 @@ static inline int Nuitka_DictKeysEqualUnicode(PyObject *key1, PyObject *key2, ri
 }
 
 #if PYTHON_VERSION >= 0x3c0
+static char const *Nuitka_DictEventMessage(PyDict_WatchEvent event) {
+    switch (event) {
+    case PyDict_EVENT_ADDED:
+        return "in PyDict_EVENT_ADDED watcher callback";
+    case PyDict_EVENT_MODIFIED:
+        return "in PyDict_EVENT_MODIFIED watcher callback";
+    case PyDict_EVENT_DELETED:
+        return "in PyDict_EVENT_DELETED watcher callback";
+    case PyDict_EVENT_CLONED:
+        return "in PyDict_EVENT_CLONED watcher callback";
+    case PyDict_EVENT_CLEARED:
+        return "in PyDict_EVENT_CLEARED watcher callback";
+    case PyDict_EVENT_DEALLOCATED:
+        return "in PyDict_EVENT_DEALLOCATED watcher callback";
+    }
+
+    return "in unknown dict watcher callback";
+}
+
 static void Nuitka_DictSendEvent(PyThreadState *tstate, int watcher_bits, PyDict_WatchEvent event, PyDictObject *mp,
                                  PyObject *key, PyObject *value) {
     PyInterpreterState *interp = tstate->interp;
 
     for (int i = 0; i < DICT_MAX_WATCHERS; i++) {
         if (watcher_bits & 1) {
-#if PYTHON_VERSION >= 0x3f0
+#if PYTHON_VERSION >= 0x3d0
             PyDict_WatchCallback cb = (PyDict_WatchCallback)FT_ATOMIC_LOAD_PTR_ACQUIRE(interp->dict_state.watchers[i]);
 #else
             PyDict_WatchCallback cb = interp->dict_state.watchers[i];
 #endif
 
             if (cb && cb(event, (PyObject *)mp, key, value) < 0) {
-                PyObject *context = PyUnicode_FromFormat("dict watcher callback for <dict at %p>", (void *)mp);
-
-                if (context == NULL) {
-                    context = Py_NewRef(Py_None);
-                }
-
-                Nuitka_WriteUnraisable(tstate, context);
-                Py_DECREF(context);
+                Nuitka_WriteUnraisableMsg(tstate, Nuitka_DictEventMessage(event), NULL);
             }
         }
 
@@ -1297,41 +1309,26 @@ static void Nuitka_DictSendEvent(PyThreadState *tstate, int watcher_bits, PyDict
     }
 }
 
-// Notify dictionary watchers and update the version tag where CPython keeps
-// one. The mutation helpers use this instead of delegating watched
-// dictionaries to CPython, so caller supplied hash and equality rules remain
-// effective.
+// Notify dictionary watchers. Mutation helpers send events before changing
+// the dictionary and update the version tag afterwards.
 static void Nuitka_DictNotifyEvent(PyThreadState *tstate, PyDictObject *mp, PyDict_WatchEvent event, PyObject *key,
                                    PyObject *value) {
+    int watcher_bits;
+
 #if PYTHON_VERSION < 0x3d0
-    int watcher_bits = mp->ma_version_tag & DICT_VERSION_MASK;
-
-    if (watcher_bits != 0) {
-        Nuitka_DictSendEvent(tstate, watcher_bits, event, mp, key, value);
-    }
-
-    mp->ma_version_tag = DICT_NEXT_VERSION(tstate->interp) | watcher_bits;
+    watcher_bits = mp->ma_version_tag & DICT_VERSION_MASK;
 #elif PYTHON_VERSION < 0x3e0
-    int watcher_bits = mp->ma_version_tag & DICT_WATCHER_MASK;
-
-    if (watcher_bits != 0) {
-        Nuitka_DictSendEvent(tstate, watcher_bits, event, mp, key, value);
-    }
-
-    mp->ma_version_tag = DICT_NEXT_VERSION(tstate->interp) | (mp->ma_version_tag & DICT_WATCHER_AND_MODIFICATION_MASK);
-#elif PYTHON_VERSION < 0x3f0
-    int watcher_bits = mp->_ma_watcher_tag & DICT_WATCHER_MASK;
-
-    if (watcher_bits != 0) {
-        Nuitka_DictSendEvent(tstate, watcher_bits, event, mp, key, value);
-    }
+    watcher_bits = mp->ma_version_tag & DICT_WATCHER_MASK;
+#elif PYTHON_VERSION < 0x3e5
+    // CPython 3.14.5 added FT_ATOMIC_LOAD_UINT64_ACQUIRE.
+    watcher_bits = mp->_ma_watcher_tag & DICT_WATCHER_MASK;
 #else
-    int watcher_bits = FT_ATOMIC_LOAD_UINT64_ACQUIRE(mp->_ma_watcher_tag) & DICT_WATCHER_MASK;
+    watcher_bits = (int)(FT_ATOMIC_LOAD_UINT64_ACQUIRE(mp->_ma_watcher_tag) & DICT_WATCHER_MASK);
+#endif
 
     if (watcher_bits != 0) {
         Nuitka_DictSendEvent(tstate, watcher_bits, event, mp, key, value);
     }
-#endif
 }
 
 #endif
@@ -2652,6 +2649,9 @@ static Py_ssize_t Nuitka_DictFTInsertSplitKey(PyDictKeysObject *keys, PyObject *
     return ix;
 }
 
+// TODO: The free-threaded helpers cache keys, values, ix, and old_value, then
+// notify watchers. A callback or sys.unraisablehook can mutate the dictionary
+// and invalidate that state; revalidate or retry after notification.
 static void Nuitka_DictFTInsertSplitValue(PyThreadState *tstate, PyDictObject *mp, PyObject *key, PyObject *value,
                                           Py_ssize_t ix, bool track) {
     ASSERT_DICT_LOCKED(mp);
@@ -2671,12 +2671,21 @@ static void Nuitka_DictFTInsertSplitValue(PyThreadState *tstate, PyDictObject *m
         FT_ATOMIC_STORE_PTR_RELEASE(values->values[ix], Py_NewRef(value));
         Nuitka_DictFTValuesAddToInsertionOrder(values, ix);
         FT_ATOMIC_STORE_SSIZE_RELAXED(mp->ma_used, FT_ATOMIC_LOAD_SSIZE_RELAXED(mp->ma_used) + 1);
+
+        if (track) {
+            NUITKA_DICT_UPDATE_VERSION(tstate, mp);
+        }
     } else if (old_value != value) {
         if (track) {
             Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
         }
 
         FT_ATOMIC_STORE_PTR_RELEASE(values->values[ix], Py_NewRef(value));
+
+        if (track) {
+            NUITKA_DICT_UPDATE_VERSION(tstate, mp);
+        }
+
         Py_DECREF(old_value);
     }
 }
@@ -2726,6 +2735,10 @@ static int Nuitka_DictFTInsertCombinedDict(PyThreadState *tstate, PyDictObject *
         FT_ATOMIC_STORE_PTR_RELEASE(entry->me_value, Py_NewRef(value));
     }
 
+    if (track) {
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
+    }
+
     FT_ATOMIC_STORE_SSIZE_RELAXED(keys->dk_usable, FT_ATOMIC_LOAD_SSIZE_RELAXED(keys->dk_usable) - 1);
     FT_ATOMIC_STORE_SSIZE_RELAXED(keys->dk_nentries, nentries + 1);
 
@@ -2773,6 +2786,10 @@ static int Nuitka_DictFTInsertToEmptyDict(PyThreadState *tstate, PyDictObject *m
     }
 
     FT_ATOMIC_STORE_SSIZE_RELAXED(mp->ma_used, FT_ATOMIC_LOAD_SSIZE_RELAXED(mp->ma_used) + 1);
+
+    if (track) {
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
+    }
 
     FT_ATOMIC_STORE_SSIZE_RELAXED(newkeys->dk_usable, newkeys->dk_usable - 1);
     FT_ATOMIC_STORE_SSIZE_RELAXED(newkeys->dk_nentries, 1);
@@ -2844,6 +2861,10 @@ static int Nuitka_DictFTInsertDict(PyThreadState *tstate, PyDictObject *mp, PyOb
             FT_ATOMIC_STORE_PTR_RELEASE(entry->me_value, Py_NewRef(value));
         }
 
+        if (track) {
+            NUITKA_DICT_UPDATE_VERSION(tstate, mp);
+        }
+
         Py_DECREF(old_value);
     }
 
@@ -2871,6 +2892,7 @@ static int Nuitka_DictFTDeleteItem(PyThreadState *tstate, PyDictObject *mp, PyOb
     Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_DELETED, key, NULL);
 
     FT_ATOMIC_STORE_SSIZE_RELAXED(mp->ma_used, FT_ATOMIC_LOAD_SSIZE_RELAXED(mp->ma_used) - 1);
+    NUITKA_DICT_UPDATE_VERSION(tstate, mp);
 
     if (FT_ATOMIC_LOAD_PTR(mp->ma_values) != NULL) {
         FT_ATOMIC_STORE_PTR_RELEASE(mp->ma_values->values[ix], NULL);
@@ -3585,11 +3607,13 @@ static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp,
 
     PyObject *old_value = *value_addr;
 
+    NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_DELETED, key, NULL);
+
     if (mp->ma_values != NULL) {
         mp->ma_values->values[ix] = NULL;
         Nuitka_DictValuesDeleteFromInsertionOrder(mp->ma_values, ix);
         mp->ma_used--;
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_DELETED, key, NULL);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         Py_DECREF(old_value);
 
         return 0;
@@ -3617,7 +3641,7 @@ static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp,
     }
 
     mp->ma_used--;
-    NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_DELETED, key, NULL);
+    NUITKA_DICT_UPDATE_VERSION(tstate, mp);
 
     Py_DECREF(old_key);
     Py_DECREF(old_value);
@@ -5129,6 +5153,15 @@ static bool DICT_CLONE_INTO(PyThreadState *tstate, PyObject *target, PyObject *d
     assert(IS_COMPACT(dict_mp));
     assert(dict_mp->ma_keys->dk_refcnt == 1);
 
+#if PYTHON_VERSION >= 0x3c0
+    NUITKA_DICT_NOTIFY_EVENT(tstate, result_mp, PyDict_EVENT_CLONED, dict_value, NULL);
+#endif
+
+    if (unlikely(result_mp->ma_used != 0 || dict_mp->ma_used == 0 || dict_mp->ma_values != NULL ||
+                 !Nuitka_DictCopyWorthy(dict_mp) || dict_mp->ma_keys->dk_refcnt != 1)) {
+        return false;
+    }
+
     Nuitka_DictValuesFree(result_mp->ma_keys, result_mp->ma_values);
     Nuitka_DictKeysDecref(tstate, result_mp->ma_keys);
 
@@ -5140,6 +5173,11 @@ static bool DICT_CLONE_INTO(PyThreadState *tstate, PyObject *target, PyObject *d
     assert(result_mp->ma_keys);
 
     memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
+
+    result_mp->ma_keys->dk_refcnt = 1;
+#if PYTHON_VERSION >= 0x3b0
+    result_mp->ma_keys->dk_version = 0;
+#endif
 
     // Take reference of all keys and values.
 #if PYTHON_VERSION < 0x3b0
@@ -5197,7 +5235,11 @@ static bool DICT_CLONE_INTO(PyThreadState *tstate, PyObject *target, PyObject *d
         Nuitka_GC_Track(result_mp);
     }
 
+#if PYTHON_VERSION >= 0x3c0
+    NUITKA_DICT_UPDATE_VERSION(tstate, result_mp);
+#else
     NUITKA_DICT_NEXT_VERSION(result_mp);
+#endif
 
     return true;
 }
@@ -5226,13 +5268,9 @@ static int _DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *ot
 #if !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT && PYTHON_VERSION >= 0x3a0 && !defined(Py_GIL_DISABLED)
         PyDictObject *target_mp = (PyDictObject *)dict;
 
-        if (target_mp->ma_used == 0 &&
+        if (PyDict_CheckExact(dict) && target_mp->ma_used == 0 &&
             (target_mp->ma_values == NULL || target_mp->ma_keys == Nuitka_DictGetEmptyKeys()) &&
-            PyDict_CheckExact(other) && Nuitka_DictCopyWorthy(other_mp) && NUITKA_DICT_IS_WATCHED(target_mp) == false) {
-            if (unlikely(DICT_CLONE_INTO(tstate, dict, other) == false)) {
-                return -1;
-            }
-
+            PyDict_CheckExact(other) && Nuitka_DictCopyWorthy(other_mp) && DICT_CLONE_INTO(tstate, dict, other)) {
             return 0;
         }
 #endif
@@ -5248,7 +5286,9 @@ static int _DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *ot
                 return -1;
             }
         }
-#elif PYTHON_VERSION < 0x3d0
+#elif PYTHON_VERSION < 0x3d6
+        // Python 3.13.6 changed the mutation check from the keys entry count to
+        // the used count.
         Py_ssize_t orig_size = other_mp->ma_keys->dk_nentries;
 #else
         Py_ssize_t orig_size = other_mp->ma_used;
@@ -5273,7 +5313,7 @@ static int _DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *ot
 #if PYTHON_VERSION >= 0x300
 #if PYTHON_VERSION < 0x360
             if (orig_size != DK_SIZE(other_mp->ma_keys)) {
-#elif PYTHON_VERSION < 0x3d0
+#elif PYTHON_VERSION < 0x3d6
             if (orig_size != other_mp->ma_keys->dk_nentries) {
 #else
             if (orig_size != other_mp->ma_used) {

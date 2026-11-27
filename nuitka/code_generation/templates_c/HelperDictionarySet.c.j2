@@ -241,6 +241,10 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
             }
         }
 
+        {% if track %}
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_ADDED, key, value);
+        {% endif %}
+
         mp->ma_keys->dk_version = 0;
 
         Py_ssize_t hashpos = Nuitka_DictFindEmptySlot(mp->ma_keys, hash);
@@ -282,7 +286,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         }
 
         {% if track %}
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         {% endif %}
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
@@ -291,6 +295,10 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
     }
 
     if (old_value != value) {
+        {% if track %}
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
+        {% endif %}
+
 {% if not value_owned %}
         Py_INCREF(value);
 {% endif %}
@@ -313,7 +321,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         }
 
         {% if track %}
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         {% endif %}
         Py_XDECREF(old_value);
     }{% if value_owned %} else {
@@ -343,11 +351,19 @@ static void _Nuitka_DictInsertSplitValue{{ suffix }}(PyThreadState *tstate, PyDi
         mp->ma_values->values[ix] = {% if value_owned %}value{% else %}Py_NewRef(value){% endif %};
         Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
         mp->ma_used++;
+
+        {% if track %}
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
+        {% endif %}
     } else if (old_value != value) {
         {% if track %}
         NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
         {% endif %}
         mp->ma_values->values[ix] = {% if value_owned %}value{% else %}Py_NewRef(value){% endif %};
+
+        {% if track %}
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
+        {% endif %}
         Py_DECREF(old_value);
     }{% if value_owned %} else {
         Py_DECREF(value);
@@ -411,6 +427,10 @@ static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject
             }
         }
 
+        {% if track %}
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_ADDED, key, value);
+        {% endif %}
+
         mp->ma_keys->dk_version = 0;
 
         Py_ssize_t new_ix = mp->ma_keys->dk_nentries;
@@ -443,7 +463,7 @@ static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject
 
         mp->ma_used++;
         {% if track %}
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         {% endif %}
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
@@ -452,6 +472,10 @@ static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject
     }
 
     if (old_value != value) {
+        {% if track %}
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
+        {% endif %}
+
 {% if not value_owned %}
         Py_INCREF(value);
 {% endif %}
@@ -465,7 +489,7 @@ static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject
         }
 
         {% if track %}
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         {% endif %}
         Py_DECREF(old_value);
     }{% if value_owned %} else {

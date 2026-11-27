@@ -410,6 +410,81 @@ def compareStates(ref, cand, step):
     return True
 
 
+# Values from PyDict_WatchEvent in CPython's dictobject.h.
+DICT_EVENT_ADDED = 0
+DICT_EVENT_MODIFIED = 1
+DICT_EVENT_DELETED = 2
+DICT_EVENT_CLONED = 3
+DICT_EVENT_CLEARED = 4
+DICT_EVENT_DEALLOCATED = 5
+
+DICT_EVENT_NAMES = (
+    "ADDED",
+    "MODIFIED",
+    "DELETED",
+    "CLONED",
+    "CLEARED",
+    "DEALLOCATED",
+)
+
+_watcher_api = None
+_watcher_id = None
+
+
+def getDictEventName(event):
+    if 0 <= event < len(DICT_EVENT_NAMES):
+        return DICT_EVENT_NAMES[event]
+
+    return "UNKNOWN(%d)" % event
+
+
+def getDictionaryWatcherAPI():
+    global _watcher_api
+
+    if _watcher_api is not None:
+        return _watcher_api
+
+    if py_version < (3, 12):
+        return None
+
+    register = globals().get("_nuitka_test_dict_watcher_register")
+
+    if register is None:
+        return None
+
+    _watcher_api = {
+        "register": register,
+        "clear": globals()["_nuitka_test_dict_watcher_clear"],
+        "watch": globals()["_nuitka_test_dict_watcher_watch"],
+        "unwatch": globals()["_nuitka_test_dict_watcher_unwatch"],
+        "reset": globals()["_nuitka_test_dict_watcher_reset"],
+        "events": globals()["_nuitka_test_dict_watcher_events"],
+        "set_unwatch": globals()["_nuitka_test_dict_watcher_set_unwatch"],
+        "set_raise": globals()["_nuitka_test_dict_watcher_set_raise"],
+        "set_clear_key": globals()["_nuitka_test_dict_watcher_set_clear_key"],
+    }
+
+    return _watcher_api
+
+
+def startDictionaryWatcher(d):
+    _watcher_api["reset"]()
+    _watcher_api["watch"](_watcher_id, d)
+
+
+def stopDictionaryWatcher(d):
+    _watcher_api["unwatch"](_watcher_id, d)
+
+
+def getDictionaryWatcherEvents():
+    return _watcher_api["events"]()
+
+
+def reportWatcherMismatch(message, events):
+    sys.stderr.write("%s\nEVENTS: %s\n" % (message, events))
+    return False
+
+
 class HashKey(object):
     def __init__(self, value, hash_value):
         self.value = value
@@ -1051,36 +1126,278 @@ def runCKnownHashTest():
 
 
 def runMutationTest():
-    source = {}
-    key_a = MutatingKey(source, "a")
-    key_b = MutatingKey(source, "b")
-    source[key_a] = "a"
-    source[key_b] = "b"
+    update_from = globals().get("_nuitka_test_dict_update_from")
 
-    for i in range(10):
-        source[i] = i
+    def attemptUpdate(update):
+        source = {}
+        key_a = MutatingKey(source, "a")
+        key_b = MutatingKey(source, "b")
+        source[key_a] = "a"
+        source[key_b] = "b"
 
-    key_a.armed = True
-    target = {99: 99}
-    mutated = False
+        for i in range(10):
+            source[i] = i
 
-    try:
-        target.update(source)
-    except RuntimeError as exception:
-        if str(exception) != "dict mutated during update":
-            sys.stderr.write("MUTATION WRONG ERROR: %s\n" % (exception,))
-            return False
+        key_a.armed = True
+        target = {99: 99}
 
-        mutated = True
+        try:
+            update(target, source)
+        except RuntimeError as exception:
+            return str(exception)
 
-    # CPython only has this mutation check on 3.6 through 3.12.
-    expected_mutated = (3, 6) <= py_version < (3, 13)
+        return None
 
-    if mutated != expected_mutated:
+    reference_error = attemptUpdate(updateWithMethod)
+
+    if update_from is None:
+        return True
+
+    candidate_error = attemptUpdate(update_from)
+
+    if candidate_error != reference_error:
         sys.stderr.write(
-            "MUTATION MISMATCH: raised=%s expected=%s\n" % (mutated, expected_mutated)
+            "MUTATION MISMATCH: reference=%r candidate=%r\n"
+            % (reference_error, candidate_error)
         )
         return False
+
+    if reference_error is not None and reference_error != "dict mutated during update":
+        sys.stderr.write("MUTATION WRONG ERROR: %s\n" % (reference_error,))
+        return False
+
+    return True
+
+
+def runWatcherOperations(label, set_item, remove_item):
+    d = {}
+    key = "watcher-key-" + label
+    value1 = object()
+    value2 = object()
+
+    startDictionaryWatcher(d)
+
+    try:
+        if set_item is None:
+            d[key] = value1
+            d[key] = value2
+            d[key] = value2
+            del d[key]
+        else:
+            set_item(d, key, value1)
+            set_item(d, key, value2)
+            set_item(d, key, value2)
+            remove_item(d, key)
+    finally:
+        stopDictionaryWatcher(d)
+
+    events = getDictionaryWatcherEvents()
+    expected = [
+        (DICT_EVENT_ADDED, id(d), id(key), id(value1), 0, False, 0),
+        (DICT_EVENT_MODIFIED, id(d), id(key), id(value2), 1, True, id(value1)),
+        (DICT_EVENT_DELETED, id(d), id(key), 0, 1, True, id(value2)),
+    ]
+
+    if events != expected:
+        return reportWatcherMismatch(
+            "DICT WATCHER %s OPERATIONS MISMATCH\nEXPECTED: %s"
+            % (label.upper(), expected),
+            events,
+        )
+
+    return True
+
+
+def runWatcherClone(label, update):
+    source = {}
+
+    for i in range(5):
+        source["watcher-source-%s-%d" % (label, i)] = i
+
+    target = {}
+    startDictionaryWatcher(target)
+
+    try:
+        update(target, source)
+    finally:
+        stopDictionaryWatcher(target)
+
+    events = getDictionaryWatcherEvents()
+    expected = [
+        (DICT_EVENT_CLONED, id(target), id(source), 0, 0, False, 0),
+    ]
+
+    if events != expected:
+        return reportWatcherMismatch(
+            "DICT WATCHER %s CLONE MISMATCH\nEXPECTED: %s" % (label.upper(), expected),
+            events,
+        )
+
+    return True
+
+
+def runWatcherCloneMutation(update_from):
+    source = {}
+
+    for i in range(5):
+        source["watcher-mutate-%d" % i] = i
+
+    target = {}
+    startDictionaryWatcher(target)
+    _watcher_api["set_clear_key"](DICT_EVENT_CLONED, source)
+
+    try:
+        update_from(target, source)
+    finally:
+        _watcher_api["set_clear_key"](-1, None)
+        stopDictionaryWatcher(target)
+
+    events = getDictionaryWatcherEvents()
+
+    if target:
+        sys.stderr.write("DICT WATCHER CLONE MUTATION COPIED CLEARED SOURCE\n")
+        return False
+
+    if (
+        len(events) != 1
+        or events[0][0] != DICT_EVENT_CLONED
+        or events[0][2] != id(source)
+    ):
+        return reportWatcherMismatch(
+            "DICT WATCHER CLONE MUTATION EVENT MISMATCH\nEXPECTED ONE CLONED EVENT",
+            events,
+        )
+
+    return True
+
+
+def runWatcherUnwatch(set_item):
+    d = {}
+    key1 = "watcher-unwatch-1"
+    key2 = "watcher-unwatch-2"
+
+    startDictionaryWatcher(d)
+    _watcher_api["set_unwatch"](DICT_EVENT_ADDED, key1)
+
+    try:
+        set_item(d, key1, object())
+        set_item(d, key2, object())
+    finally:
+        _watcher_api["set_unwatch"](-1, None)
+        stopDictionaryWatcher(d)
+
+    events = getDictionaryWatcherEvents()
+
+    if len(events) != 1 or events[0][0] != DICT_EVENT_ADDED or events[0][2] != id(key1):
+        return reportWatcherMismatch(
+            "DICT WATCHER UNWATCH MISMATCH\nEXPECTED ONE ADDED EVENT FOR FIRST KEY",
+            events,
+        )
+
+    if len(d) != 2:
+        sys.stderr.write("DICT WATCHER UNWATCH LEFT WRONG SIZE: %d\n" % len(d))
+        return False
+
+    return True
+
+
+def runWatcherException(set_item):
+    d = {}
+    key = "watcher-exception"
+    value = object()
+
+    startDictionaryWatcher(d)
+    _watcher_api["set_raise"](DICT_EVENT_ADDED, key)
+
+    captured = []
+
+    def captureUnraisable(unraisable):
+        captured.append((unraisable.exc_type, str(unraisable.exc_value)))
+
+    old_hook = sys.unraisablehook
+    sys.unraisablehook = captureUnraisable
+
+    try:
+        set_item(d, key, value)
+    finally:
+        sys.unraisablehook = old_hook
+        _watcher_api["set_raise"](-1, None)
+        stopDictionaryWatcher(d)
+
+    if d.get(key) is not value:
+        sys.stderr.write("DICT WATCHER EXCEPTION LOST MUTATION\n")
+        return False
+
+    if (
+        len(captured) != 1
+        or captured[0][0] is not RuntimeError
+        or "dict watcher callback failure" not in captured[0][1]
+    ):
+        sys.stderr.write("DICT WATCHER EXCEPTION NOT REPORTED: %r\n" % (captured,))
+        return False
+
+    events = getDictionaryWatcherEvents()
+
+    if len(events) != 1 or events[0][0] != DICT_EVENT_ADDED:
+        return reportWatcherMismatch(
+            "DICT WATCHER EXCEPTION EVENT MISMATCH\nEXPECTED ONE ADDED EVENT",
+            events,
+        )
+
+    return True
+
+
+def updateWithMethod(target, source):
+    target.update(source)
+
+
+def runWatcherTest():
+    global _watcher_id
+
+    api = getDictionaryWatcherAPI()
+
+    if api is None:
+        return True
+
+    _watcher_id = api["register"]()
+
+    if _watcher_id < 0:
+        sys.stderr.write("DICT WATCHER REGISTRATION FAILED\n")
+        return False
+
+    set_item = globals().get("_nuitka_test_dict_set_item")
+    remove_item = globals().get("_nuitka_test_dict_remove_item")
+    update_from = globals().get("_nuitka_test_dict_update_from")
+
+    try:
+        if not runWatcherOperations("cpython", None, None):
+            return False
+
+        if set_item is not None:
+            if not runWatcherOperations("nuitka", set_item, remove_item):
+                return False
+
+        if not runWatcherClone("cpython", updateWithMethod):
+            return False
+
+        # The clone fast path is not used on free-threaded builds, where the
+        # update goes through per-key additions instead.
+        if update_from is not None and not is_free_threaded:
+            if not runWatcherClone("nuitka", update_from):
+                return False
+
+            if not runWatcherCloneMutation(update_from):
+                return False
+
+        if set_item is not None:
+            if not runWatcherUnwatch(set_item):
+                return False
+
+            if not runWatcherException(set_item):
+                return False
+    finally:
+        api["clear"](_watcher_id)
+        _watcher_id = None
 
     return True
 
@@ -1135,6 +1452,9 @@ def main():
         return 1
 
     if not runCCloneTest():
+        return 1
+
+    if not runWatcherTest():
         return 1
 
     if not runCKnownHashTest():

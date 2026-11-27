@@ -57,6 +57,19 @@ static void Nuitka_DictNotifyEvent(PyThreadState *tstate, PyDictObject *mp, PyDi
 #define NUITKA_DICT_NOTIFY_EVENT(tstate, mp, event, key, value) NUITKA_DICT_NEXT_VERSION(mp)
 #endif
 
+#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0
+#if PYTHON_VERSION < 0x3d0
+#define NUITKA_DICT_VERSION_TAG_MASK DICT_VERSION_MASK
+#else
+#define NUITKA_DICT_VERSION_TAG_MASK DICT_WATCHER_AND_MODIFICATION_MASK
+#endif
+
+#define NUITKA_DICT_UPDATE_VERSION(tstate, mp)                                                                         \
+    ((mp)->ma_version_tag = DICT_NEXT_VERSION((tstate)->interp) | ((mp)->ma_version_tag & NUITKA_DICT_VERSION_TAG_MASK))
+#else
+#define NUITKA_DICT_UPDATE_VERSION(tstate, mp)
+#endif
+
 NUITKA_MAY_BE_UNUSED static bool Nuitka_DictGetHash(PyThreadState *tstate, PyObject *key, Py_hash_t *hash_ptr);
 
 #if PYTHON_VERSION >= 0x3b0

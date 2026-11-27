@@ -223,6 +223,8 @@ static int _Nuitka_DictSetItemCompact(PyThreadState *tstate, PyDictObject *mp, P
             }
         }
 
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_ADDED, key, value);
+
         mp->ma_keys->dk_version = 0;
 
         Py_ssize_t hashpos = Nuitka_DictFindEmptySlot(mp->ma_keys, hash);
@@ -261,8 +263,7 @@ static int _Nuitka_DictSetItemCompact(PyThreadState *tstate, PyDictObject *mp, P
             Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, mp->ma_keys->dk_nentries);
         }
 
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
 
@@ -270,6 +271,9 @@ static int _Nuitka_DictSetItemCompact(PyThreadState *tstate, PyDictObject *mp, P
     }
 
     if (old_value != value) {
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
+                                 value);
+
         Py_INCREF(value);
 
         if (mp->ma_values != NULL) {
@@ -289,8 +293,7 @@ static int _Nuitka_DictSetItemCompact(PyThreadState *tstate, PyDictObject *mp, P
             }
         }
 
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         Py_XDECREF(old_value);
     }
     return 0;
@@ -507,6 +510,8 @@ static int _Nuitka_DictSetItemCompact1(PyThreadState *tstate, PyDictObject *mp, 
             }
         }
 
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_ADDED, key, value);
+
         mp->ma_keys->dk_version = 0;
 
         Py_ssize_t hashpos = Nuitka_DictFindEmptySlot(mp->ma_keys, hash);
@@ -544,8 +549,7 @@ static int _Nuitka_DictSetItemCompact1(PyThreadState *tstate, PyDictObject *mp, 
             Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, mp->ma_keys->dk_nentries);
         }
 
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
 
@@ -553,6 +557,8 @@ static int _Nuitka_DictSetItemCompact1(PyThreadState *tstate, PyDictObject *mp, 
     }
 
     if (old_value != value) {
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
+                                 value);
 
         if (mp->ma_values != NULL) {
             mp->ma_values->values[ix] = value;
@@ -571,8 +577,7 @@ static int _Nuitka_DictSetItemCompact1(PyThreadState *tstate, PyDictObject *mp, 
             }
         }
 
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         Py_XDECREF(old_value);
     } else {
         Py_DECREF(value);
@@ -821,6 +826,7 @@ static int _Nuitka_DictSetItemCompactUntracked(PyThreadState *tstate, PyDictObje
     }
 
     if (old_value != value) {
+
         Py_INCREF(value);
 
         if (mp->ma_values != NULL) {
@@ -1119,9 +1125,13 @@ static void _Nuitka_DictInsertSplitValue(PyThreadState *tstate, PyDictObject *mp
         mp->ma_values->values[ix] = Py_NewRef(value);
         Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
         mp->ma_used++;
+
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
     } else if (old_value != value) {
         NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
         mp->ma_values->values[ix] = Py_NewRef(value);
+
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         Py_DECREF(old_value);
     }
 }
@@ -1137,9 +1147,13 @@ static void _Nuitka_DictInsertSplitValue1(PyThreadState *tstate, PyDictObject *m
         mp->ma_values->values[ix] = value;
         Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
         mp->ma_used++;
+
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
     } else if (old_value != value) {
         NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
         mp->ma_values->values[ix] = value;
+
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         Py_DECREF(old_value);
     } else {
         Py_DECREF(value);
@@ -1156,8 +1170,10 @@ static void _Nuitka_DictInsertSplitValueUntracked(PyThreadState *tstate, PyDictO
         mp->ma_values->values[ix] = Py_NewRef(value);
         Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
         mp->ma_used++;
+
     } else if (old_value != value) {
         mp->ma_values->values[ix] = Py_NewRef(value);
+
         Py_DECREF(old_value);
     }
 }
@@ -1172,8 +1188,10 @@ static void _Nuitka_DictInsertSplitValueUntracked1(PyThreadState *tstate, PyDict
         mp->ma_values->values[ix] = value;
         Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
         mp->ma_used++;
+
     } else if (old_value != value) {
         mp->ma_values->values[ix] = value;
+
         Py_DECREF(old_value);
     } else {
         Py_DECREF(value);
@@ -1228,6 +1246,8 @@ static int _Nuitka_DictSetItem3x(PyThreadState *tstate, PyDictObject *mp, PyObje
             }
         }
 
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_ADDED, key, value);
+
         mp->ma_keys->dk_version = 0;
 
         Py_ssize_t new_ix = mp->ma_keys->dk_nentries;
@@ -1257,8 +1277,7 @@ static int _Nuitka_DictSetItem3x(PyThreadState *tstate, PyDictObject *mp, PyObje
         }
 
         mp->ma_used++;
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
 
@@ -1266,6 +1285,9 @@ static int _Nuitka_DictSetItem3x(PyThreadState *tstate, PyDictObject *mp, PyObje
     }
 
     if (old_value != value) {
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
+                                 value);
+
         Py_INCREF(value);
 
         if (mp->ma_values != NULL) {
@@ -1276,8 +1298,7 @@ static int _Nuitka_DictSetItem3x(PyThreadState *tstate, PyDictObject *mp, PyObje
             DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
         }
 
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         Py_DECREF(old_value);
     }
     return 0;
@@ -1331,6 +1352,8 @@ static int _Nuitka_DictSetItem3x1(PyThreadState *tstate, PyDictObject *mp, PyObj
             }
         }
 
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_ADDED, key, value);
+
         mp->ma_keys->dk_version = 0;
 
         Py_ssize_t new_ix = mp->ma_keys->dk_nentries;
@@ -1359,8 +1382,7 @@ static int _Nuitka_DictSetItem3x1(PyThreadState *tstate, PyDictObject *mp, PyObj
         }
 
         mp->ma_used++;
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
 
@@ -1368,6 +1390,8 @@ static int _Nuitka_DictSetItem3x1(PyThreadState *tstate, PyDictObject *mp, PyObj
     }
 
     if (old_value != value) {
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
+                                 value);
 
         if (mp->ma_values != NULL) {
             mp->ma_values->values[ix] = value;
@@ -1377,8 +1401,7 @@ static int _Nuitka_DictSetItem3x1(PyThreadState *tstate, PyDictObject *mp, PyObj
             DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
         }
 
-        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key,
-                                 value);
+        NUITKA_DICT_UPDATE_VERSION(tstate, mp);
         Py_DECREF(old_value);
     } else {
         Py_DECREF(value);
@@ -1468,6 +1491,7 @@ static int _Nuitka_DictSetItem3xUntracked(PyThreadState *tstate, PyDictObject *m
     }
 
     if (old_value != value) {
+
         Py_INCREF(value);
 
         if (mp->ma_values != NULL) {

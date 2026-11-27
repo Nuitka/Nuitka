@@ -87,6 +87,19 @@ void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped
     PyErr_Format(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
 }
 
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(char const *format, PyObject *mistyped) {
+    PyErr_Format(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+}
+
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED2(char const *format, PyObject *mistyped1, PyObject *mistyped2) {
+    PyErr_Format(PyExc_TypeError, format, Py_TYPE(mistyped1)->tp_name, Py_TYPE(mistyped2)->tp_name);
+}
+
+PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
+    (void)tstate;
+    return PyObject_CallObject(called, NULL);
+}
+
 void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value) {
     PyErr_Format(exception_type, format, value);
 }
