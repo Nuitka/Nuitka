@@ -2154,6 +2154,22 @@ call of the functions below is a hint that it should be replaced.
          incrementing the reference count; callers needing a new
          reference must incref.
 
+   -  -  ``Py_INCREF`` / ``Py_DECREF`` / ``Py_NewRef`` (immortal
+         singletons)
+
+      -  ``Py_INCREF_IMMORTAL``, ``Py_DECREF_IMMORTAL``,
+         ``Py_NewRef_IMMORTAL``
+
+      -  ``allocator.h``
+
+      -  Use only on values guaranteed to be immortal on Python 3.12+
+         (such as ``Py_None``, ``Py_True``, ``Py_False``,
+         ``Py_NotImplemented``, and ``const_str_empty`` on Python 3).
+         Avoids reference-count traffic on 3.12+ and increments or
+         decrements normally on older versions; use ``return
+         Py_NewRef_IMMORTAL(Py_NotImplemented);`` instead of
+         ``Py_RETURN_NOTIMPLEMENTED``.
+
    -  -  ``Py_IsNone``
 
       -  ``== Py_None`` / ``!= Py_None``
@@ -2333,6 +2349,52 @@ call of the functions below is a hint that it should be replaced.
          it fast-paths empty operands and copies Unicode data directly.
          Python 2 delegates to ``PyUnicode_Concat``.
 
+   -  -  ``PyUnicode_FromObject``
+
+      -  ``Nuitka_PyUnicode_FromObject``
+
+      -  ``helper/strings.h``
+
+      -  Returns exact ``unicode``/``str`` with a new reference
+         (readying legacy strings on Python 3.4-3.11), copies
+         ``unicode``/``str`` subtypes into an exact instance, and raises
+         ``TypeError`` on Python 3 or delegates to
+         ``PyUnicode_FromEncodedObject`` on Python 2 for other types.
+
+   -  -  ``PyUnicode_GetLength``
+
+      -  ``PyUnicode_GET_LENGTH``
+
+      -  ``string_functions.h``
+
+      -  Direct macro returning the code-point length (aliased to
+         ``PyUnicode_GET_SIZE`` on Python 2). Asserts a ready
+         ``unicode`` object on Python 3.4-3.11 instead of calling
+         ``PyUnicode_READY`` or checking the type.
+
+   -  -  ``PyUnicode_FindChar`` / single-character ``PyUnicode_Find``
+
+      -  ``Nuitka_Unicode_FindChar``
+
+      -  ``helper/strings.h``
+
+      -  Asserts ``PyUnicode_Check``; readies legacy strings on Python
+         3.4-3.11 (returning ``-2`` on error), clamps slice bounds like
+         ``PyUnicode_FindChar`` (allowing ``PY_SSIZE_T_MAX`` for
+         ``end``), and scans PEP 393 or Python 2 ``Py_UNICODE`` buffers
+         directly.
+
+   -  -  ``PyUnicode_Substring``
+
+      -  ``Nuitka_Unicode_Substring``
+
+      -  ``helper/strings.h``
+
+      -  Asserts ``PyUnicode_Check``; raises ``IndexError`` on negative
+         ``start`` or ``end``, clamps ``end`` to length, and copies the
+         slice directly with the tightest PEP 393 character width on
+         Python 3.
+
    -  -  ``PyUnicode_CompareWithASCIIString``
 
       -  ``Nuitka_Unicode_CompareWithASCIIString``
@@ -2343,15 +2405,31 @@ call of the functions below is a hint that it should be replaced.
          and no exception raised. The C string argument must be ASCII,
          which is asserted in debug builds.
 
-   -  -  ``PyObject_Str`` / ``str()``
+   -  -  ``PyObject_Str`` / ``PyObject_Unicode``
 
-      -  ``BUILTIN_UNICODE1``
+      -  ``BUILTIN_STR_OR_UNICODE1``, ``BUILTIN_UNICODE1``,
+         ``BUILTIN_STR``
 
       -  ``helpers.h``
 
-      -  Returns exact ``unicode`` unchanged, calls ``tp_str`` directly,
-         falls back to ``repr`` when ``tp_str`` is absent, and rejects
+      -  ``BUILTIN_STR_OR_UNICODE1`` matches ``PyObject_Str`` across
+         Python 2 (``BUILTIN_STR``) and Python 3 (``BUILTIN_UNICODE1``).
+         ``BUILTIN_UNICODE1`` implements Python 3 ``str()`` and Python 2
+         ``unicode()``, returning exact ``unicode`` unchanged, calling
+         ``tp_str`` directly with ``repr`` fallback, and rejecting
          non-unicode ``__str__`` results.
+
+   -  -  ``PyOS_FSPath``
+
+      -  ``OS_FSPATH``
+
+      -  ``helpers.h``
+
+      -  Python 3.6+ only. Returns ``str`` or ``bytes`` (including
+         subtypes) with a new reference, invokes ``__fspath__`` via
+         ``LOOKUP_SPECIAL_NO_ERROR``, treats ``__fspath__ = None`` as
+         unsupported on Python 3.13+, and raises the matching
+         ``TypeError`` messages.
 
    -  -  ``PyMapping_HasKey``
 
@@ -2414,22 +2492,41 @@ call of the functions below is a hint that it should be replaced.
          not generic ``PyNumber_*`` replacements.
 
    -  -  ``PyObject_RichCompare``
-      -  ``RICH_COMPARE_*`` families
-      -  ``helper/comparisons_*.h``
-      -  The ``BOOL`` variants return a tri-state with an exception
-         sentinel instead of ``-1``; comparison semantics are the same.
+
+      -  ``RICH_COMPARE_OBJECT_OBJECT_OBJECT``, ``RICH_COMPARE_*``
+         families
+
+      -  ``helper/richcomparisons.h``, ``helper/comparisons_*.h``
+
+      -  ``RICH_COMPARE_OBJECT_OBJECT_OBJECT`` dispatches runtime
+         ``Py_EQ``..``Py_GT`` opcodes (asserting on invalid opcodes);
+         per-operator ``BOOL`` variants return a tri-state with an
+         exception sentinel instead of ``-1``.
 
    -  -  ``PyObject_RichCompareBool``
 
-      -  ``RICH_COMPARE_*_NBOOL_*``
+      -  ``RICH_COMPARE_NBOOL_OBJECT_OBJECT``,
+         ``RICH_COMPARE_*_NBOOL_*``
 
-      -  ``helper/comparisons_*.h``
+      -  ``helper/richcomparisons.h``, ``helper/comparisons_*.h``
 
       -  Returns ``nuitka_bool`` instead of ``int``. The identity
          shortcut for ``Py_EQ``/``Py_NE`` only applies to sane builtin
          types, so other types are compared normally, e.g. a ``NaN``
          compares unequal to itself, unlike CPython's
          ``PyObject_RichCompareBool``.
+
+   -  -  ``PyUnicode_RichCompare``
+
+      -  ``RICH_COMPARE_OBJECT_UNICODE_UNICODE``,
+         ``RICH_COMPARE_CBOOL_UNICODE_UNICODE``,
+         ``RICH_COMPARE_*_UNICODE_UNICODE``
+
+      -  ``helper/richcomparisons.h``, ``helper/comparisons_*.h``
+
+      -  Assert exact ``unicode`` operands (``PyUnicode_CheckExact``)
+         and compare code points directly in C instead of returning
+         ``NotImplemented`` on non-unicode inputs.
 
    -  -  ``PyImport_ImportModule``
 
@@ -2567,6 +2664,14 @@ Practical caveats
 -  ``Nuitka_Bytes_AsString``/``Nuitka_Bytes_AsStringAndSize`` assert
    bytes compatibility instead of reporting a type error; use them only
    after establishing the type.
+
+-  ``Nuitka_Unicode_FindChar`` and ``Nuitka_Unicode_Substring`` assert
+   ``PyUnicode_Check`` instead of raising a type error, and
+   ``PyUnicode_GET_LENGTH`` requires a ready ``unicode`` object on
+   Python 3.4-3.11. When searching to the end of a ``unicode`` value
+   whose readiness has not yet been checked on Python 3.4-3.11, pass
+   ``PY_SSIZE_T_MAX`` as ``end`` to ``Nuitka_Unicode_FindChar`` rather
+   than evaluating ``PyUnicode_GET_LENGTH`` first.
 
 -  ``CHECK_AND_CLEAR_*_OCCURRED`` (and
    ``CHECK_AND_CLEAR_STOP_ITERATION_STATE``) return ``true`` whenever no
