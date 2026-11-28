@@ -864,11 +864,11 @@ static bool compareToEntryName(char const *name, struct Nuitka_MetaPathBasedLoad
 
 static struct Nuitka_MetaPathBasedLoaderEntry *findEntry(char const *name, bool internal) {
     for (int i = 0; i < loader_entry_count; i++) {
-        if (compareToEntryName(name, loader_entries[i])) {
-            if (!internal && (loader_entries[i]->flags & NUITKA_INTERNAL_MODULE_FLAG)) {
-                continue;
-            }
+        if (!internal && (loader_entries[i]->flags & NUITKA_INTERNAL_MODULE_FLAG) != 0) {
+            continue;
+        }
 
+        if (compareToEntryName(name, loader_entries[i])) {
             return loader_entries[i];
         }
     }
