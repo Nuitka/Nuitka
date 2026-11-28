@@ -5398,6 +5398,15 @@
         - 'pyarrow._json'
         - 'pyarrow._csv'
 
+- module-name: 'pyarrow.fs' # checksum: 7c62b298
+  anti-bloat:
+    - description: 'remove optional remote filesystem backends'
+      no-auto-follow:
+        'pyarrow._azurefs': 'Azure Storage support in "pyarrow.fs" will not be available unless you do "--include-module=pyarrow._azurefs"'
+        'pyarrow._gcsfs': 'Google Cloud Storage support in "pyarrow.fs" will not be available unless you do "--include-module=pyarrow._gcsfs"'
+        'pyarrow._hdfs': 'HDFS support in "pyarrow.fs" will not be available unless you do "--include-module=pyarrow._hdfs"'
+        'pyarrow._s3fs': 'S3 support in "pyarrow.fs" will not be available unless you do "--include-module=pyarrow._s3fs"'
+
 - module-name: 'pyarrow.lib' # checksum: 302be0c2
   implicit-imports:
     - depends:
