@@ -819,6 +819,32 @@ print(
 )
 
 
+class _StarredBase:
+    pass
+
+
+_starredBases = (_StarredBase,)
+
+
+class _StarredBasesTypeParams[T](*_starredBases):
+    pass
+
+
+def _starredTypeVarTupleAnnotation[*Ts](value: tuple[*Ts]) -> tuple[*Ts]:
+    return value
+
+
+print(
+    "Class with unpacked type parameter bases:",
+    [base.__name__ for base in _StarredBasesTypeParams.__bases__],
+    _StarredBasesTypeParams.__type_params__[0].__name__,
+)
+print(
+    "Starred type parameter annotations (VALUE):",
+    displayDict(get_annotations(_starredTypeVarTupleAnnotation, format=Format.VALUE)),
+)
+
+
 # Shadow hard and ordinary builtin names at module level (kept at end of file).
 vars = int
 dir = str
