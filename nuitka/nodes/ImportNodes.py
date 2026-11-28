@@ -25,9 +25,9 @@ from nuitka.HardImportRegistry import (
     trust_undefined,
 )
 from nuitka.importing.Importing import (
-    isNonRaisingBuiltinModule,
     isPackageDir,
     isPackageModuleName,
+    isRaisingBuiltinModule,
     locateModule,
     makeModuleUsageAttempt,
     makeParentModuleUsagesAttempts,
@@ -51,6 +51,7 @@ from nuitka.specs.BuiltinParameterSpecs import (
     extractBuiltinArgs,
 )
 from nuitka.Tracing import unusual_logger
+from nuitka.utils.Importing import isBuiltinModuleName
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import withNoDeprecationWarning, withWarningRemoved
 
@@ -72,6 +73,7 @@ from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpression,
     makeRaiseImportErrorReplacementExpression,
+    wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 from .StatementBasesGenerated import StatementImportStarBase
@@ -161,7 +163,7 @@ class ExpressionImportAllowanceMixin(object):
 
         if self.finding == "not-found":
             self.allowed = False
-        elif self.finding == "built-in" or self.module_name in hard_modules_stdlib:
+        elif self.module_kind == "built-in" or self.module_name in hard_modules_stdlib:
             self.allowed = True
         else:
             self.allowed, _reason = decideRecursion(
@@ -332,22 +334,24 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
 
         self.builtin_module = __import__(module_name.asString())
 
-        _module_name, _module_filename, _module_kind, _finding = locateModule(
+        _module_name, _module_filename, module_kind, finding = locateModule(
             module_name=self.module_name,
             parent_package=None,
             level=0,
         )
 
         assert _module_name == self.module_name, _module_name
-        assert _finding == "built-in", _finding
-        assert _module_kind is None, _module_kind
+        assert module_kind == "built-in", module_kind
+        assert finding == "absolute", finding
+
+        self.module_kind = module_kind
 
         self.module_usages = makeParentModuleUsagesAttempts(
             makeModuleUsageAttempt(
                 module_name=self.module_name,
                 filename=None,
-                finding="built-in",
-                module_kind=None,
+                finding=finding,
+                module_kind=module_kind,
                 level=0,
                 source_ref=self.source_ref,
                 reason="import",
@@ -367,7 +371,14 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
     def getDetails(self):
         return {"module_name": self.module_name, "value_name": self.value_name}
 
+    @staticmethod
+    def getFromlistModuleNames():
+        return ()
+
     def getModuleName(self):
+        return self.module_name
+
+    def getFoundModuleName(self):
         return self.module_name
 
     def getValueName(self):
@@ -378,10 +389,10 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
         return True
 
     def mayRaiseException(self, exception_type):
-        return isNonRaisingBuiltinModule(self.module_name) is not False
+        return isRaisingBuiltinModule(self.module_name) is not False
 
     def mayRaiseExceptionOperation(self):
-        return isNonRaisingBuiltinModule(self.module_name) is not False
+        return isRaisingBuiltinModule(self.module_name) is not False
 
     def getModuleUsageAttempts(self):
         return self.module_usages
@@ -1003,6 +1014,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
     __slots__ = (
         "follow_attempted",
         "finding",
+        "module_kind",
         "used_modules",
         "found_module_name",
     )
@@ -1039,6 +1051,8 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         self.used_modules = []
 
         self.finding = None
+
+        self.module_kind = None
 
         self.found_module_name = None
 
@@ -1087,7 +1101,12 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             )
 
         module_name = ModuleName(module_name)
-        module_name_found, module_filename, module_kind, self.finding = locateModule(
+        (
+            module_name_found,
+            module_filename,
+            self.module_kind,
+            self.finding,
+        ) = locateModule(
             module_name=ModuleName(module_name),
             parent_package=parent_package,
             level=level_value,
@@ -1098,7 +1117,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         onModuleUsageLookAhead(
             module_name=module_name_found,
             module_filename=module_filename,
-            module_kind=module_kind,
+            module_kind=self.module_kind,
         )
 
         if module_name_found.getTopLevelPackageName() != "":
@@ -1106,7 +1125,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 makeModuleUsageAttempt(
                     module_name=module_name_found,
                     filename=module_filename,
-                    module_kind=module_kind,
+                    module_kind=self.module_kind,
                     finding=self.finding,
                     level=level_value,
                     source_ref=self.source_ref,
@@ -1230,8 +1249,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
             return self, None, None
 
-        if self.finding != "built-in":
-            trace_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         module_name = self.subnode_name
 
@@ -1340,7 +1358,12 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             )
                         )
 
-                if self.finding == "built-in":
+                if (
+                    self.finding == "absolute"
+                    and self.module_kind == "built-in"
+                    and self._isFromlistConstant()
+                    and isBuiltinModuleName(imported_module_name)
+                ):
                     result = makeExpressionImportModuleBuiltin(
                         using_module_name=self.getParentModule().getFullName(),
                         module_name=imported_module_name,
@@ -1348,12 +1371,16 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         source_ref=self.source_ref,
                     )
 
-                    # TODO: This ought to preserve side effects from arguments
-                    # for full compatibility with strange uses of __import__
+                    result = wrapExpressionWithSideEffects(
+                        side_effects=self.getVisitableNodes(),
+                        old_node=self,
+                        new_node=result,
+                    )
+
                     return (
                         result,
                         "new_expression",
-                        "Lowered import of built-in module '%s' to hard import."
+                        "Lowered import of built-in module '%s' to built-in import."
                         % imported_module_name.asString(),
                     )
 
@@ -1410,11 +1437,13 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
     # TODO: Add computeExpressionImportName
 
-    def mayRaiseException(self, exception_type):
-        return self.finding != "built-in"
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
 
-    def mayRaiseExceptionOperation(self):
-        return self.finding != "built-in"
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class StatementImportStar(StatementImportStarBase):
@@ -1447,6 +1476,10 @@ class StatementImportStar(StatementImportStarBase):
     @staticmethod
     def mayRaiseException(exception_type):
         # TODO: Check '__all__' if it can really raise.
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
         return True
 
     @staticmethod
@@ -1489,7 +1522,9 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
         )
 
     def mayRaiseException(self, exception_type):
-        return self.subnode_module.mayRaiseExceptionImportName(
+        return self.subnode_module.mayRaiseException(
+            exception_type
+        ) or self.subnode_module.mayRaiseExceptionImportName(
             exception_type=exception_type, import_name=self.import_name
         )
 

@@ -1666,7 +1666,7 @@ _stdlib_module_raises = {
 }
 
 
-def isNonRaisingBuiltinModule(module_name):
+def isRaisingBuiltinModule(module_name):
     assert isBuiltinModuleName(module_name), module_name
 
     # Return None, if we don't know.

@@ -24,7 +24,12 @@ from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .LoaderCodes import getModuleEntryCodeName
 from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import CArg, generateCAPIObjectCode0
+from .PythonAPICodes import (
+    CArg,
+    generateCAPIErrorCode,
+    generateCAPIObjectCode0,
+    getCAPIErrorCode,
+)
 
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
@@ -206,19 +211,15 @@ def _emitParentModuleBindings(module, emit, context):
         )
         context.addCleanupTempName(child_value_name)
 
-        res_name = context.getBoolResName()
-
-        emit(
-            "%s = SET_ATTRIBUTE(tstate, %s, %s, %s);"
-            % (
-                res_name,
+        getCAPIErrorCode(
+            capi="SET_ATTRIBUTE",
+            arg_names=(
+                "tstate",
                 parent_value_name,
                 context.getConstantCode(child_name.getBasename().asString()),
                 child_value_name,
-            )
-        )
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
+            ),
+            may_raise=True,
             release_names=(parent_value_name, child_value_name),
             emit=emit,
             context=context,
@@ -768,43 +769,25 @@ PyObject *args[2] = { %(import_name)s, %(package_name)s };
 
 
 def generateImportStarCode(statement, emit, context):
-    module_name = context.allocateTempName("star_imported")
+    target_scope = statement.getTargetDictScope()
 
-    generateExpressionCode(
-        to_name=module_name,
-        expression=statement.subnode_module,
+    if type(target_scope) is GlobalsDictHandle:
+        target_args = (CArg(getModuleAccessCode(context=context)), CArg("true"))
+    else:
+        target_args = (
+            CArg(context.addLocalsDictName(target_scope.getCodeName())),
+            CArg("false"),
+        )
+
+    generateCAPIErrorCode(
+        capi="IMPORT_MODULE_STAR",
+        tstate=True,
+        arg_desc=target_args + (("star_imported", statement.subnode_module),),
+        may_raise=statement.mayRaiseExceptionOperation(),
+        source_ref=statement.getSourceReference(),
         emit=emit,
         context=context,
     )
-
-    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
-        res_name = context.getBoolResName()
-
-        target_scope = statement.getTargetDictScope()
-
-        if type(target_scope) is GlobalsDictHandle:
-            emit(
-                "%s = IMPORT_MODULE_STAR(tstate, %s, true, %s);"
-                % (res_name, getModuleAccessCode(context=context), module_name)
-            )
-        else:
-            locals_declaration = context.addLocalsDictName(target_scope.getCodeName())
-
-            emit(
-                "%(res_name)s = IMPORT_MODULE_STAR(tstate, %(locals_dict)s, false, %(module_name)s);"
-                % {
-                    "res_name": res_name,
-                    "locals_dict": locals_declaration,
-                    "module_name": module_name,
-                }
-            )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_name=module_name,
-            emit=emit,
-            context=context,
-        )
 
 
 def generateImportNameCode(to_name, expression, emit, context):
