@@ -32,6 +32,7 @@ from .ErrorCodes import (
 from .ExpressionCTypeSelectionHelpers import decideExpressionCTypes
 from .PythonAPICodes import (
     CArg,
+    generateCAPIBoolCode,
     generateCAPIObjectCodeCommon,
     makeArgDescFromExpression,
 )
@@ -56,6 +57,20 @@ def generateOperationNotCode(to_name, expression, emit, context):
     operand = expression.subnode_operand
 
     if operand.mayRaiseExceptionBool(BaseException):
+        if operand.getSourceReference() != expression.getCompatibleSourceReference():
+            generateCAPIBoolCode(
+                to_name=to_name,
+                capi="CHECK_IF_TRUE",
+                tstate=False,
+                arg_desc=makeArgDescFromExpression(expression),
+                may_raise=True,
+                inverted=True,
+                source_ref=expression.getCompatibleSourceReference(),
+                emit=emit,
+                context=context,
+            )
+            return
+
         truth_c_type = "nuitka_bool"
     else:
         truth_c_type = "bool"

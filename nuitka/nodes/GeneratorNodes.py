@@ -44,6 +44,19 @@ class MakeGeneratorLikeMixin(ExpressionNoSideEffectsMixin):
     def mayRaiseException(self, exception_type):
         return False
 
+    @staticmethod
+    def getTruthValue():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
+        # pylint: disable=unused-argument
+        return False
+
+    @staticmethod
+    def mayHaveSideEffectsBool():
+        return False
+
 
 class ExpressionMakeGeneratorObject(
     MakeGeneratorLikeMixin, ChildHavingGeneratorRefMixin, ExpressionBase

@@ -316,6 +316,43 @@ class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase
             user_provided=True,
         )
 
+    def _mayHaveOwnSideEffects(self):
+        elements = self.subnode_elements
+
+        if len(elements) >= 2:
+            for element in elements:
+                if not element.isCompileTimeConstant():
+                    return True
+
+        for element in elements:
+            if (
+                element.isKnownToBeHashable() is not True
+                or element.getTypeShape().hasShapeSlotHashCode() is not False
+            ):
+                return True
+
+        return False
+
+    def mayHaveSideEffects(self):
+        if self._mayHaveOwnSideEffects():
+            return True
+
+        return ExpressionMakeSequenceBase.mayHaveSideEffects(self)
+
+    def extractSideEffects(self):
+        if self._mayHaveOwnSideEffects():
+            return (self,)
+
+        return ExpressionMakeSequenceBase.extractSideEffects(self)
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        if self._mayHaveOwnSideEffects():
+            return statement, None, None
+
+        return ExpressionMakeSequenceBase.computeExpressionDrop(
+            self, statement=statement, trace_collection=trace_collection
+        )
+
     def mayRaiseException(self, exception_type):
         for element in self.subnode_elements:
             if not element.isKnownToBeHashable():

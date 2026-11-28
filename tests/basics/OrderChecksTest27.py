@@ -46,6 +46,69 @@ def raiseOrderCheck():
 setOrderCheck()
 raiseOrderCheck()
 
+
+def setTruthHashingSideEffects():
+    events = []
+
+    class CustomHashKey(object):
+        def __init__(self, tag):
+            self.tag = tag
+
+        def __hash__(self):
+            events.append(("hash", self.tag))
+            return 42
+
+        def __eq__(self, other):
+            events.append(("eq", self.tag, other.tag))
+            return False
+
+    def notSet(value):
+        return not {value}
+
+    def boolSet(value):
+        return bool({value})
+
+    def ifSet(value):
+        if {value}:
+            return "truthy"
+        return "falsy"
+
+    def dropSet(value):
+        {value}  # pylint: disable=pointless-statement
+
+    def notSetPair(k1, k2):
+        return not {k1, k2}
+
+    for name, fn in (
+        ("notSet", notSet),
+        ("boolSet", boolSet),
+        ("ifSet", ifSet),
+        ("dropSet", dropSet),
+    ):
+        try:
+            fn([])
+        except TypeError:
+            print(name, "unhashable raised TypeError")
+
+    del events[:]
+    print("notSet custom:", notSet(CustomHashKey("s1")), events)
+    del events[:]
+    print("boolSet custom:", boolSet(CustomHashKey("s2")), events)
+    del events[:]
+    print("ifSet custom:", ifSet(CustomHashKey("s3")), events)
+    del events[:]
+    dropSet(CustomHashKey("s4"))
+    print("dropSet custom:", events)
+    del events[:]
+    print(
+        "notSetPair custom:",
+        notSetPair(CustomHashKey("sp1"), CustomHashKey("sp2")),
+        events,
+    )
+
+
+setTruthHashingSideEffects()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

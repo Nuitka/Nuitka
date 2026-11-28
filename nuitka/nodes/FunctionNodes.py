@@ -1263,6 +1263,19 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
     def getTypeShape():
         return tshape_function
 
+    @staticmethod
+    def getTruthValue():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
+        # pylint: disable=unused-argument
+        return False
+
+    @staticmethod
+    def mayHaveSideEffectsBool():
+        return False
+
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
@@ -1297,6 +1310,11 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
         annotations = self.subnode_annotations
 
         if annotations is not None and annotations.mayRaiseException(exception_type):
+            return True
+
+        type_params = self.subnode_type_params
+
+        if type_params is not None and type_params.mayRaiseException(exception_type):
             return True
 
         return False

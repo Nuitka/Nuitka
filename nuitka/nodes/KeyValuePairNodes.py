@@ -73,15 +73,30 @@ class ExpressionKeyValuePairNonConstantMixin(ExpressionKeyValuePairMixin):
     def isKeyKnownToBeHashable(self):
         return self.subnode_key.isKnownToBeHashable()
 
+    def isKeyCompileTimeConstant(self):
+        return self.subnode_key.isCompileTimeConstant()
+
+    def mayHaveSideEffects(self):
+        key = self.subnode_key
+
+        if (
+            key.isKnownToBeHashable() is not True
+            or key.getTypeShape().hasShapeSlotHashCode() is not False
+        ):
+            return True
+
+        return key.mayHaveSideEffects() or self.subnode_value.mayHaveSideEffects()
+
     def extractSideEffects(self):
-        if self.subnode_key.isKnownToBeHashable() is True:
-            key_part = self.subnode_key.extractSideEffects()
+        key = self.subnode_key
+
+        if (
+            key.isKnownToBeHashable() is True
+            and key.getTypeShape().hasShapeSlotHashCode() is False
+        ):
+            key_part = key.extractSideEffects()
         else:
-            key_part = (
-                ExpressionBuiltinHash(
-                    value=self.subnode_key, source_ref=self.subnode_key.source_ref
-                ),
-            )
+            key_part = (ExpressionBuiltinHash(value=key, source_ref=key.source_ref),)
 
         if python_version < 0x350:
             return self.subnode_value.extractSideEffects() + key_part
@@ -201,6 +216,10 @@ class ExpressionKeyValuePairConstantKey(
     def isKeyKnownToBeHashable():
         return True
 
+    @staticmethod
+    def isKeyCompileTimeConstant():
+        return True
+
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -265,6 +284,10 @@ class ExpressionKeyValuePairConstantKeyValue(
 
     @staticmethod
     def isKeyKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isKeyCompileTimeConstant():
         return True
 
     def computeExpressionRaw(self, trace_collection):

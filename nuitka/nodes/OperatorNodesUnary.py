@@ -17,7 +17,9 @@ from .ExpressionShapeMixins import (
     ExpressionStrOrUnicodeDerivedShapeMixin,
 )
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpressionFromInstance,
+    wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_unknown
@@ -274,7 +276,25 @@ class ExpressionOperationNot(
         )
 
     def computeExpression(self, trace_collection):
-        return self.subnode_operand.computeExpressionOperationNot(
+        operand = self.subnode_operand
+
+        truth_value = operand.getTruthValue()
+
+        if truth_value is not None:
+            result = wrapExpressionWithNodeSideEffects(
+                new_node=makeConstantReplacementNode(
+                    constant=not truth_value, node=self, user_provided=False
+                ),
+                old_node=operand,
+            )
+
+            return (
+                result,
+                "new_constant",
+                "Predicted truth value of 'not' operand.",
+            )
+
+        return operand.computeExpressionOperationNot(
             not_node=self, trace_collection=trace_collection
         )
 
@@ -305,12 +325,9 @@ class ExpressionOperationNot(
     def extractSideEffects(self):
         operand = self.subnode_operand
 
-        # TODO: Find the common ground of these, and make it an expression
-        # method.
-        if operand.isExpressionMakeSequence():
-            return operand.extractSideEffects()
-
-        if operand.isExpressionMakeDict():
+        if not operand.mayHaveSideEffectsBool() and not operand.mayRaiseExceptionBool(
+            BaseException
+        ):
             return operand.extractSideEffects()
 
         return (self,)

@@ -410,6 +410,124 @@ def conditionalExpressionSliceGet(given):
 
 conditionalExpressionSliceGet(True)
 
+
+def assertLambdaAndShortCircuitSideEffects():
+    events = []
+
+    def side(tag, value=1):
+        events.append(tag)
+        return value
+
+    def assertLambdaSimple():
+        assert lambda x: x
+
+    def assertLambdaDefaults():
+        assert lambda x=side("def"): x
+        assert bool(lambda x=side("bool_def"): x) is True
+        assert (not (lambda x=side("not_def"): x)) is False
+
+    def conditionalLambdaBool(cond, value):
+        res1 = 1 if (value if cond else (lambda a=side("cond1"): a)) else 0
+        res2 = 1 if not (value if cond else (lambda a=side("cond2"): a)) else 0
+        res3 = bool(value if cond else (lambda a=side("cond3"): a))
+        res4 = not (value if cond else (lambda a=side("cond4"): a))
+        return res1, res2, res3, res4
+
+    def shortCircuitOrLambda(flag):
+        return 1 if (flag or (lambda a=side("or_lambda"): a)) else 2
+
+    def shortCircuitAndLambda(flag):
+        return 1 if (flag and (lambda a=side("and_lambda"): a)) else 2
+
+    def shortCircuitOrUnassigned(flag):
+        if flag or [un_assigned_in_branch()]:  # pylint: disable=undefined-variable
+            return "yes"
+        return "no"
+
+    assertLambdaSimple()
+    assertLambdaDefaults()
+    print("assertLambdaDefaults events:", events)
+
+    del events[:]
+    print("conditionalLambdaBool True:", conditionalLambdaBool(True, 0), events)
+    del events[:]
+    print("conditionalLambdaBool False:", conditionalLambdaBool(False, 0), events)
+
+    del events[:]
+    print("shortCircuitOrLambda True:", shortCircuitOrLambda(True), events)
+    del events[:]
+    print("shortCircuitOrLambda False:", shortCircuitOrLambda(False), events)
+
+    del events[:]
+    print("shortCircuitAndLambda False:", shortCircuitAndLambda(False), events)
+    del events[:]
+    print("shortCircuitAndLambda True:", shortCircuitAndLambda(True), events)
+
+    print("shortCircuitOrUnassigned True:", shortCircuitOrUnassigned(True))
+    try:
+        shortCircuitOrUnassigned(False)
+    except NameError:
+        print("shortCircuitOrUnassigned False raised NameError")
+
+
+assertLambdaAndShortCircuitSideEffects()
+
+
+def dictTruthHashingSideEffects():
+    events = []
+
+    class CustomHashKey(object):
+        def __init__(self, tag):
+            self.tag = tag
+
+        def __hash__(self):
+            events.append(("hash", self.tag))
+            return 42
+
+        def __eq__(self, other):
+            events.append(("eq", self.tag, other.tag))
+            return False
+
+    def notDict(value):
+        return not {value: 1}
+
+    def boolDict(value):
+        return bool({value: 1})
+
+    def ifDict(value):
+        if {value: 1}:
+            return "truthy"
+        return "falsy"
+
+    def notDictPair(k1, k2):
+        return not {k1: 1, k2: 2}
+
+    for name, fn in (
+        ("notDict", notDict),
+        ("boolDict", boolDict),
+        ("ifDict", ifDict),
+    ):
+        try:
+            fn([])
+        except TypeError:
+            print(name, "unhashable raised TypeError")
+
+    del events[:]
+    print("notDict custom:", notDict(CustomHashKey("d1")), events)
+    del events[:]
+    print("boolDict custom:", boolDict(CustomHashKey("d2")), events)
+    del events[:]
+    print("ifDict custom:", ifDict(CustomHashKey("d3")), events)
+    del events[:]
+    print(
+        "notDictPair custom:",
+        notDictPair(CustomHashKey("dp1"), CustomHashKey("dp2")),
+        events,
+    )
+
+
+dictTruthHashingSideEffects()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

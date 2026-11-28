@@ -383,20 +383,28 @@ branches.""" % self.conditional_kind,
         return False
 
     def computeExpressionBool(self, trace_collection):
-        truth_value = self.subnode_right.getTruthValue()
-
         if not self.mayRaiseException(BaseException) and self.mayRaiseExceptionBool(
             BaseException
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        right = self.subnode_right
+        truth_value = right.getTruthValue()
+
         if truth_value is None:
-            pass
-        elif truth_value is True:
-            if self.isExpressionConditionalOr():
+            return None, None, None
+
+        right_is_pure = (
+            not right.mayHaveSideEffects()
+            and not right.mayRaiseException(BaseException)
+            and not right.mayRaiseExceptionBool(BaseException)
+        )
+
+        if truth_value is self.isExpressionConditionalOr():
+            if right_is_pure:
                 result = wrapExpressionWithSideEffects(
                     new_node=makeConstantReplacementNode(
-                        constant=True, node=self.subnode_right, user_provided=False
+                        constant=truth_value, node=right, user_provided=False
                     ),
                     old_node=self,
                     side_effects=(
@@ -406,44 +414,26 @@ branches.""" % self.conditional_kind,
                     ),
                 )
 
-                return True, result, "Predicted right hand side of 'or' to be true."
-            else:
-                # TODO: There are no side effects after something else, which
-                # would be needed, but for constant values, this works well.
-                if not self.subnode_right.mayHaveSideEffects():
-                    return (
-                        self.subnode_left.getTruthValue(),
-                        self.subnode_left,
-                        "Predicted right hand side of 'and' to be true.",
-                    )
-        elif truth_value is False:
-            if self.isExpressionConditionalAnd():
-                result = wrapExpressionWithSideEffects(
-                    new_node=makeConstantReplacementNode(
-                        constant=False, node=self.subnode_right, user_provided=False
-                    ),
-                    old_node=self,
-                    side_effects=(
-                        ExpressionBuiltinBool(
-                            value=self.subnode_left, source_ref=self.source_ref
-                        ),
-                    ),
+                return (
+                    truth_value,
+                    result,
+                    "Predicted right hand side of '%s' to be %s."
+                    % (self.conditional_kind, "true" if truth_value else "false"),
                 )
 
-                return False, result, "Predicted right hand side of 'and' to be false."
-            else:
-                # TODO: There are no side effects after something else, which
-                # would be needed, but for constant values, this works well.
-                if not self.subnode_right.mayHaveSideEffects():
-                    return (
-                        self.subnode_left.getTruthValue(),
-                        self.subnode_left,
-                        "Predicted right hand side of 'or' to be false.",
-                    )
-                else:
-                    truth_value = self.subnode_left.getTruthValue()
+            return None, None, None
 
-        return truth_value, None, None
+        # TODO: There are no side effects after something else, which
+        # would be needed, but for constant values, this works well.
+        if right_is_pure:
+            return (
+                self.subnode_left.getTruthValue(),
+                self.subnode_left,
+                "Predicted right hand side of '%s' to be %s."
+                % (self.conditional_kind, "true" if truth_value else "false"),
+            )
+
+        return self.subnode_left.getTruthValue(), None, None
 
     def mayRaiseExceptionBool(self, exception_type):
         if self.subnode_left.mayRaiseExceptionBool(exception_type):

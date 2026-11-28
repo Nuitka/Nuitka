@@ -20,6 +20,7 @@ from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import (
     CArg,
     ConstantArg,
+    generateCAPIBoolCode,
     generateCAPIObjectCode,
     generateCAPIObjectCodeCommon,
     makeArgDescFromExpression,
@@ -300,6 +301,19 @@ def generateBuiltinBoolCode(to_name, expression, emit, context):
     value = expression.subnode_value
 
     if value.mayRaiseExceptionBool(BaseException):
+        if value.getSourceReference() != expression.getCompatibleSourceReference():
+            generateCAPIBoolCode(
+                to_name=to_name,
+                capi="CHECK_IF_TRUE",
+                tstate=False,
+                arg_desc=makeArgDescFromExpression(expression),
+                may_raise=True,
+                source_ref=expression.getCompatibleSourceReference(),
+                emit=emit,
+                context=context,
+            )
+            return
+
         truth_c_type = "nuitka_bool"
     else:
         truth_c_type = "bool"

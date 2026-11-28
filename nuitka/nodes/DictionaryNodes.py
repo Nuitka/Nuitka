@@ -150,9 +150,23 @@ class ExpressionMakeDictMixin(object):
             for pair in self.subnode_pairs
         ]
 
+    def _mayHaveCollisionSideEffects(self):
+        pairs = self.subnode_pairs
+
+        if len(pairs) < 2:
+            return False
+
+        for pair in pairs:
+            if not pair.isKeyKnownToBeHashable() or not pair.isKeyCompileTimeConstant():
+                return True
+
+        return False
+
     # TODO: Make this happen from auto-compute, children only side effects
     def computeExpressionDrop(self, statement, trace_collection):
-        # pylint: disable=unused-argument
+        if self._mayHaveCollisionSideEffects():
+            return statement, None, None
+
         expressions = []
 
         for pair in self.subnode_pairs:
@@ -332,6 +346,18 @@ Created dictionary found to be constant.""",
     @staticmethod
     def getTruthValue():
         return True
+
+    def mayHaveSideEffects(self):
+        if self._mayHaveCollisionSideEffects():
+            return True
+
+        return SideEffectsFromChildrenMixin.mayHaveSideEffects(self)
+
+    def extractSideEffects(self):
+        if self._mayHaveCollisionSideEffects():
+            return (self,)
+
+        return SideEffectsFromChildrenMixin.extractSideEffects(self)
 
 
 class StatementDictOperationSetMixin(object):
